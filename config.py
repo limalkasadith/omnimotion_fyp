@@ -13,7 +13,7 @@ def config_parser():
     parser.add_argument('--ckpt_path', type=str, default='', help='checkpoint path')
     parser.add_argument('--no_reload', action='store_true', help='do not reload the weights')
     parser.add_argument('--distributed', type=int, default=0, help='if use distributed training')
-    parser.add_argument('--num_iters', type=int, default=100000, help='number of iterations')
+    parser.add_argument('--num_iters', type=int, default=10000, help='number of iterations')
     parser.add_argument('--num_workers', type=int, default=4, help='number of workers')
     parser.add_argument('--load_opt', type=int, default=1, help='if loading optimizers')
     parser.add_argument('--load_scheduler', type=int, default=1, help='if loading schedulers')
@@ -81,6 +81,5 @@ def config_parser():
 
     args = parser.parse_args()
     return args
-
 
 

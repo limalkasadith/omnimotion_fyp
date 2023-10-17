@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from PIL import Image
 
 import util
 from criterion import masked_mse_loss, masked_l1_loss, compute_depth_range_loss, lossfun_distortion
@@ -29,7 +30,15 @@ def init_weights(m):
 
 def de_parallel(model):
     return model.module if hasattr(model, 'module') else model
-
+def load_image4(imfile):
+    img = np.array(Image.open(imfile)).astype(np.uint8)
+    img= Image.fromarray(img)
+    img = Image.merge("RGB", (img, img, img))
+    img= np.array(img)
+    #print('testttttttt',img.shape)
+    #img = img[:, :, np.newaxis]
+    
+    return img
 
 class BaseTrainer():
     def __init__(self, args, device='cuda'):
@@ -107,7 +116,7 @@ class BaseTrainer():
         self.num_imgs = min(self.args.num_imgs, len(img_files))
         self.img_files = img_files[:self.num_imgs]
 
-        images = np.array([imageio.imread(img_file) / 255. for img_file in self.img_files])
+        images = np.array([load_image4(img_file) / 255. for img_file in self.img_files])
         self.images = torch.from_numpy(images).float()  # [n_imgs, h, w, 3]
         self.h, self.w = self.images.shape[1:3]
 
@@ -483,7 +492,7 @@ class BaseTrainer():
         # loss for mapped points to stay within canonical sphere
         canonical_unit_sphere_loss = self.canonical_sphere_loss(x1s_canonical_samples)
 
-        loss = optical_flow_loss + \
+        loss = 0*optical_flow_loss + \
                w_rgb * (loss_rgb + loss_rgb_grad) + \
                w_depth_range * depth_range_loss + \
                w_distortion * distortion_loss + \

@@ -10,9 +10,21 @@ from trainer import BaseTrainer
 import colorsys
 from matplotlib import cm
 import cv2
+from PIL import Image
+#import matplotlib.colormaps as mcm
 
+#color_map = mcm.get_cmap("jet")
 
-color_map = cm.get_cmap("jet")
+color_map = cm.get_cmap('jet')
+def load_image4(imfile):
+    img = np.array(Image.open(imfile)).astype(np.uint8)
+    img= Image.fromarray(img)
+    img = Image.merge("RGB", (img, img, img))
+    img= np.array(img)
+    #print('testttttttt',img.shape)
+    #img = img[:, :, np.newaxis]
+    
+    return img
 
 
 def vis_trail(scene_dir, kpts_foreground, kpts_background, save_path):
@@ -23,7 +35,7 @@ def vis_trail(scene_dir, kpts_foreground, kpts_background, save_path):
     """
     img_dir = os.path.join(scene_dir, "color")
     img_files = sorted(list(glob.glob(os.path.join(img_dir, "*"))))
-    images = np.array([imageio.imread(img_file) for img_file in img_files])
+    images = np.array([load_image4(img_file) for img_file in img_files])
 
     kpts_foreground = kpts_foreground[:, ::1]  # can adjust kpts sampling rate here
 
@@ -103,7 +115,7 @@ if __name__ == '__main__':
                                                                     radius=radius,
                                                                     return_kpts=True)
         imageio.mimwrite(os.path.join(vis_dir, '{}_{:06d}_foreground_{}.mp4'.format(seq_name, trainer.step, query_id)),
-                         frames, quality=8, fps=10)
+                         frames)
         kpts_forground = kpts_forground.cpu().numpy()
 
         # background
@@ -117,7 +129,7 @@ if __name__ == '__main__':
                                                                      return_kpts=True)
         kpts_background = kpts_background.cpu().numpy()
         imageio.mimwrite(os.path.join(vis_dir, '{}_{:06d}_background_{}.mp4'.format(seq_name, trainer.step, query_id)),
-                         frames, quality=8, fps=10)
+                         frames)
         # visualize trails
         vis_trail(args.data_dir, kpts_forground, kpts_background,
                   os.path.join(vis_dir, '{}_{:06d}_{}_trails.mp4'.format(seq_name, trainer.step, query_id)))
@@ -129,7 +141,7 @@ if __name__ == '__main__':
                                                     use_max_loc=args.use_max_loc,
                                                     radius=radius)
         imageio.mimwrite(os.path.join(vis_dir, '{}_{:06d}_{}.mp4'.format(seq_name, trainer.step, query_id)),
-                         frames, quality=8, fps=10)
+                         frames)
 
 
 
