@@ -1,0 +1,27 @@
+# download the dataset from google drive
+gdown --id 1GLTClmydzX2iPyT7qkbNJXxzmWtEKwKB
+
+# Change the directory
+cd /n/home10/limalkasadith/Track_Everything/omnimotion_fyp
+
+# training codes
+python train.py --config configs/default.txt --data_dir ../jellyfish/
+python train.py --config configs/default.txt --data_dir ../jellyfish/ --num_iters 400000
+
+# visualizing
+python viz.py --config configs/default.txt --data_dir ../jellyfish/ --query_frame_id 10
+
+# tensorboard
+tensorboard --logdir=/n/home10/limalkasadith/Track_Everything/omnimotion_fyp/logs --bind_all
+
+#c onda env activation
+source activate omnimotion
+
+# distributed training
+python -m torch.distributed.launch --nproc_per_node={2} train.py --config configs/default.txt --data_dir ../jellyfish/ --num_iters 400000 --distributed 1
+
+# visualizing with mask
+python viz.py --config configs/default.txt --data_dir ../jellyfish/ --query_frame_id 0
+
+# zip a file
+zip -r <filename.zip> <dir>
