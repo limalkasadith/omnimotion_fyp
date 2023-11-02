@@ -11,6 +11,7 @@ import colorsys
 from matplotlib import cm
 import cv2
 from PIL import Image
+import imageio_ffmpeg as ffmpeg
 #import matplotlib.colormaps as mcm
 
 #color_map = mcm.get_cmap("jet")
@@ -81,7 +82,7 @@ def vis_trail(scene_dir, kpts_foreground, kpts_background, save_path):
 
         frames.append(img_curr)
 
-    imageio.mimwrite(save_path, frames, quality=8, fps=10)
+    imageio.mimwrite(save_path, frames, 'ffmpeg', quality=8, fps=10)
 
 
 if __name__ == '__main__':
@@ -115,7 +116,7 @@ if __name__ == '__main__':
                                                                     radius=radius,
                                                                     return_kpts=True)
         imageio.mimwrite(os.path.join(vis_dir, '{}_{:06d}_foreground_{}.mp4'.format(seq_name, trainer.step, query_id)),
-                         frames)
+                         frames, 'ffmpeg')
         kpts_forground = kpts_forground.cpu().numpy()
 
         # background
@@ -129,7 +130,7 @@ if __name__ == '__main__':
                                                                      return_kpts=True)
         kpts_background = kpts_background.cpu().numpy()
         imageio.mimwrite(os.path.join(vis_dir, '{}_{:06d}_background_{}.mp4'.format(seq_name, trainer.step, query_id)),
-                         frames)
+                         frames, 'ffmpeg')
         # visualize trails
         vis_trail(args.data_dir, kpts_forground, kpts_background,
                   os.path.join(vis_dir, '{}_{:06d}_{}_trails.mp4'.format(seq_name, trainer.step, query_id)))
