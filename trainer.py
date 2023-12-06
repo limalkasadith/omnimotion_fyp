@@ -433,6 +433,7 @@ class BaseTrainer():
                            w_scene_flow_smooth=10.,
                            w_canonical_unit_sphere=0.,
                            w_flow_grad=0.01,
+                           w_diverge=1.,
                            write_logs=True,
                            return_data=False,
                            log_prefix='loss',
@@ -475,6 +476,19 @@ class BaseTrainer():
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
             optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
+
+            flow_x_pred, flow_y_pred = torch.split(px2s_proj[mask], 1, dim=-1)
+            flow_x_gt, flow_y_gt = torch.split(px2s[mask], 1, dim=-1)
+
+            dx_pred = flow_x_pred[..., 1:] - flow_x_pred[..., :-1] 
+            dy_pred = flow_y_pred[..., 1:] - flow_y_pred[..., :-1]
+            div_pred = torch.abs(dx_pred) + torch.abs(dy_pred)
+
+            dx_gt = flow_x_gt[..., 1:] - flow_x_gt[..., :-1]
+            dy_gt = flow_y_gt[..., 1:] - flow_y_gt[..., :-1] 
+            div_gt = torch.abs(dx_gt) + torch.abs(dy_gt)
+
+            div_loss = torch.mean(torch.abs(div_pred - div_gt))
         else:
             loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
@@ -498,7 +512,9 @@ class BaseTrainer():
                w_distortion * distortion_loss + \
                w_scene_flow_smooth * scene_flow_smoothness_loss + \
                w_canonical_unit_sphere * canonical_unit_sphere_loss + \
-               w_flow_grad * optical_flow_grad_loss
+               w_flow_grad * optical_flow_grad_loss + \
+               w_diverge * div_loss
+               
 
         if write_logs:
             self.scalars_to_log['{}/Loss'.format(log_prefix)] = loss.item()
@@ -509,6 +525,7 @@ class BaseTrainer():
             self.scalars_to_log['{}/loss_scene_flow_smoothness'.format(log_prefix)] = scene_flow_smoothness_loss.item()
             self.scalars_to_log['{}/loss_canonical_unit_sphere'.format(log_prefix)] = canonical_unit_sphere_loss.item()
             self.scalars_to_log['{}/loss_flow_gradient'.format(log_prefix)] = optical_flow_grad_loss.item()
+            self.scalars_to_log['{}/loss_diverge'.format(log_prefix)] = div_loss.item()
 
         data = {'ids1': ids1,
                 'ids2': ids2,
