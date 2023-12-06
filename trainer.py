@@ -505,6 +505,7 @@ class BaseTrainer():
 
         # loss for mapped points to stay within canonical sphere
         canonical_unit_sphere_loss = self.canonical_sphere_loss(x1s_canonical_samples)
+        print("divloss",div_loss)
 
         loss = 0*optical_flow_loss + \
                w_rgb * (loss_rgb + loss_rgb_grad) + \
@@ -514,6 +515,7 @@ class BaseTrainer():
                w_canonical_unit_sphere * canonical_unit_sphere_loss + \
                w_flow_grad * optical_flow_grad_loss + \
                w_diverge * div_loss
+        print("loss",loss)
                
 
         if write_logs:
