@@ -490,7 +490,7 @@ class BaseTrainer():
             dz_gt = flow_z_gt[..., 1:] - flow_z_gt[..., :-1]
             div_gt = torch.abs(dx_gt[mask]) + torch.abs(dy_gt[mask])+torch.abs(dz_gt[mask])
 
-            div_loss = torch.mean(torch.abs(div_pred - div_gt))
+            div_loss = masked_l1_loss(div_pred[mask], div_gt[mask], weights[mask], normalize=False)
         else:
             loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
