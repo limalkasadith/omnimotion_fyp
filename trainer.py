@@ -467,6 +467,7 @@ class BaseTrainer():
         px2s_proj_samples, px2s_proj_depth_samples = self.project(x2s_proj_samples, return_depth=True)
         px2s_proj, px2s_proj_depths = self.project(x2s_pred, return_depth=True)
         print("px2s_proj",px2s_proj.shape);
+        print("px2s",px2s);
 
         mask = self.get_in_range_mask(px2s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
