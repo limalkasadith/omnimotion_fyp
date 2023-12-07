@@ -394,6 +394,7 @@ class BaseTrainer():
         xs_prev_after = self.get_predictions(torch.cat([xs, xs], dim=0),
                                              np.concatenate([ids, ids]),
                                              np.concatenate([ids_prev, ids_after]))
+        print("xs_prev_after",xs_prev_after.shape);
         xs_prev, xs_after = torch.split(xs_prev_after, split_size_or_sections=len(xs), dim=0)
         scene_flow_prev = xs - xs_prev
         scene_flow_after = xs_after - xs
