@@ -530,8 +530,8 @@ class BaseTrainer():
                w_distortion * distortion_loss + \
                w_scene_flow_smooth * scene_flow_smoothness_loss + \
                w_canonical_unit_sphere * canonical_unit_sphere_loss + \
-               w_flow_grad * optical_flow_grad_loss + \
-               w_diverge * div_loss
+               w_flow_grad * optical_flow_grad_loss
+            #    + w_diverge * div_loss
         print("loss",loss)
                
 
