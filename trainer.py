@@ -434,7 +434,7 @@ class BaseTrainer():
                            w_scene_flow_smooth=10.,
                            w_canonical_unit_sphere=0.,
                            w_flow_grad=0.01,
-                           w_diverge=0.1,
+                           w_diverge=0.01,
                            write_logs=True,
                            return_data=False,
                            log_prefix='loss',
@@ -533,8 +533,8 @@ class BaseTrainer():
                w_distortion * distortion_loss + \
                w_scene_flow_smooth * scene_flow_smoothness_loss + \
                w_canonical_unit_sphere * canonical_unit_sphere_loss + \
-               w_flow_grad * optical_flow_grad_loss
-            #    + w_diverge * div_loss
+               w_flow_grad * optical_flow_grad_loss+ \
+               w_diverge * div_loss
         print("loss",loss)
                
 
@@ -547,7 +547,7 @@ class BaseTrainer():
             self.scalars_to_log['{}/loss_scene_flow_smoothness'.format(log_prefix)] = scene_flow_smoothness_loss.item()
             self.scalars_to_log['{}/loss_canonical_unit_sphere'.format(log_prefix)] = canonical_unit_sphere_loss.item()
             self.scalars_to_log['{}/loss_flow_gradient'.format(log_prefix)] = optical_flow_grad_loss.item()
-            # self.scalars_to_log['{}/loss_diverge'.format(log_prefix)] = div_loss.item()
+            self.scalars_to_log['{}/loss_diverge'.format(log_prefix)] = div_loss.item()
 
         data = {'ids1': ids1,
                 'ids2': ids2,
