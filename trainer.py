@@ -253,7 +253,7 @@ class BaseTrainer():
             x_canonical = contraction(x_canonical)
         out_canonical = self.color_mlp(x_canonical)
         color = torch.sigmoid(out_canonical[..., :3])  # [n_imgs, n_pts, n_samples, 3]
-        density = F.softplus(out_canonical[..., -1] - 1.)
+        density = F.sigmoid(out_canonical[..., -1] - 1.)
         return color, density
 
     def get_blending_weights(self, x_canonical):
