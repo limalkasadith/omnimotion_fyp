@@ -473,6 +473,7 @@ class BaseTrainer():
 
         mask = self.get_in_range_mask(px2s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
+        print("mask",mask.shape);
 
         if mask.sum() > 0:
             loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
