@@ -488,11 +488,11 @@ class BaseTrainer():
         convolved_tensor = convolved_tensor.squeeze(0).squeeze(0)
         pred_img1 = convolved_tensor[:,:,16]
         gt_img1 = self.images[px2s][:,:,0:1]
-        norm_gt_img1 = (gt_img1 - np.min(gt_img1)) / (np.max(gt_img1) - np.min(gt_img1))
+        
 
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
-            loss_rgb = F.mse_loss(pred_img1, norm_gt_img1)
+            loss_rgb = F.mse_loss(pred_img1.to('cuda'), gt_img1.squeeze(-1).to('cuda'))
             #loss_rgb_grad = self.gradient_loss(pred_img1, gt_img1)
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
