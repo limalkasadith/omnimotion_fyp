@@ -460,6 +460,7 @@ class BaseTrainer():
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
         pred_rgb1 = out['rendered_rgbs']
+        pred_dens1 = out['rendered_density']
 
         mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
         blending_weights1 = blending_weights1 * mask.float()
@@ -472,9 +473,26 @@ class BaseTrainer():
         mask = self.get_in_range_mask(px2s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
 
+        # image color loss
+        pixel_coords, depth = torch.split(x2s_pred, dim=-1, split_size_or_sections=[2, 1])
+        d_pixel_coords = util.denormalize_coords(pixel_coords, trainer.h, trainer.w)
+        d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
+        psf_tensor = torch.zeros((self.h, self.w, 32), device=x2s_pred.device)
+        coords = d_volume_coords.long()
+        psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
+
+        tensor_3d = psf_tensor.to('cuda')  
+        kernel_3d = self.psf.to('cuda')  
+        kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
+        convolved_tensor = F.conv3d(tensor_3d.unsqueeze(0).unsqueeze(0), kernel_3d, padding=(10, 10, 17))
+        convolved_tensor = convolved_tensor.squeeze(0).squeeze(0)
+        pred_img1 = convolved_tensor[:,:,16]
+        gt_img1 = self.images[px2s][:,:,0:1]
+
         if mask.sum() > 0:
-            loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
-            loss_rgb_grad = self.gradient_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            loss_rgb = F.mse_loss(pred_img1, gt_img1)
+            loss_rgb_grad = self.gradient_loss(pred_img1, gt_img1)
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
             optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
