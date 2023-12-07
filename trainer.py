@@ -464,6 +464,8 @@ class BaseTrainer():
         blending_weights1 = blending_weights1 * mask.float()
         x2s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x2s_proj_samples, dim=-2)
         # x1s_pred= torch.sum(blending_weights1.unsqueeze(-1) * x1s_samples, dim=-2)
+        print("px1s",px1s.shape)
+        print("px2s",px2s.shape)
 
         # [n_imgs, n_pts, n_samples, 2]
         px2s_proj_samples, px2s_proj_depth_samples = self.project(x2s_proj_samples, return_depth=True)
