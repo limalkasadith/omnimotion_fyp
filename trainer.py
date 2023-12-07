@@ -113,7 +113,7 @@ class BaseTrainer():
         self.img_dir = os.path.join(self.seq_dir, 'color')
         self.psf_path = os.path.join(self.seq_dir, 'psf_3D-NA0_4-dx1_1um-21_21_35.pt')
 
-        psf_file = torch.load(psf_path)
+        psf_file = torch.load(self.psf_path)
         self.psf = (psf_file.abs()**2).sum(dim= 0)
 
         img_files = sorted(glob.glob(os.path.join(self.img_dir, '*')))
