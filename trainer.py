@@ -491,8 +491,8 @@ class BaseTrainer():
             # flow_x_pred, flow_y_pred,flow_z_pred = torch.split(px2s_proj, 1, dim=-1)
             # flow_x_gt, flow_y_gt,flow_z_gt = torch.split(px2s, 1, dim=-1)
 
-            d_pred=px2s_proj[ :, 1:, :] - px1s[ :, :-1, :]
-            d_get=px2s[ :, 1:, :] - px1s[ :, :-1, :]
+            d_pred=px2s_proj[ :, :, :] - px1s[ :, :, :]
+            d_get=px2s[ :, :, :] - px1s[ :, :, :]
             div_pred=torch.sum(d_pred)
             div_gt=torch.sum(d_get)
 
