@@ -394,7 +394,7 @@ class BaseTrainer():
         xs_prev_after = self.get_predictions(torch.cat([xs, xs], dim=0),
                                              np.concatenate([ids, ids]),
                                              np.concatenate([ids_prev, ids_after]))
-        print("xs_prev_after",xs_prev_after.shape);
+        # print("xs_prev_after",xs_prev_after.shape);
         xs_prev, xs_after = torch.split(xs_prev_after, split_size_or_sections=len(xs), dim=0)
         scene_flow_prev = xs - xs_prev
         scene_flow_after = xs_after - xs
@@ -464,8 +464,8 @@ class BaseTrainer():
         blending_weights1 = blending_weights1 * mask.float()
         x2s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x2s_proj_samples, dim=-2)
         # x1s_pred= torch.sum(blending_weights1.unsqueeze(-1) * x1s_samples, dim=-2)
-        print("px1s",px1s.shape)
-        print("px2s",px2s.shape)
+        # print("px1s",px1s.shape)
+        # print("px2s",px2s.shape)
 
         # [n_imgs, n_pts, n_samples, 2]
         px2s_proj_samples, px2s_proj_depth_samples = self.project(x2s_proj_samples, return_depth=True)
@@ -479,7 +479,7 @@ class BaseTrainer():
 
         mask = self.get_in_range_mask(px2s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
-        print("mask",mask.shape);
+        # print("mask",mask.shape);
 
         if mask.sum() > 0:
             loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
@@ -508,7 +508,7 @@ class BaseTrainer():
             # div_gt = torch.abs(dx_gt[mask]) + torch.abs(dy_gt[mask])+torch.abs(dz_gt[mask])
 
             div_loss = torch.abs(div_pred - div_gt)
-            print("divloss",div_loss)
+            # print("divloss",div_loss)
         else:
             loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
@@ -535,7 +535,7 @@ class BaseTrainer():
                w_canonical_unit_sphere * canonical_unit_sphere_loss + \
                w_flow_grad * optical_flow_grad_loss+ \
                w_diverge * div_loss
-        print("loss",loss)
+        # print("loss",loss)
                
 
         if write_logs:
