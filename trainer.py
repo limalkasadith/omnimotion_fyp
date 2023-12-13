@@ -495,6 +495,7 @@ class BaseTrainer():
             d_get=px2s[ :, :, :] - px1s[ :, :, :]
             div_pred=torch.sum(d_pred)
             div_gt=torch.sum(d_get)
+            print(div_gt.shape)
 
 
             # dx_pred = flow_x_pred[..., 1:] - flow_x_pred[..., :-1] 
