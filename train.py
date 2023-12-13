@@ -96,10 +96,11 @@ def train(args):
 
 if __name__ == '__main__':
     args = config_parser()
+    local_rank = int(os.environ["LOCAL_RANK"])
 
     if args.distributed:
-        args.local_rank = int(os.environ['LOCAL_RANK']) if 'LOCAL_RANK' in os.environ else 0
-        torch.cuda.set_device(args.local_rank)
+        # args.local_rank = int(os.environ['LOCAL_RANK']) if 'LOCAL_RANK' in os.environ else 0
+        torch.cuda.set_device(local_rank)
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
 
