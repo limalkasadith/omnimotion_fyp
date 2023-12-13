@@ -434,7 +434,7 @@ class BaseTrainer():
                            w_scene_flow_smooth=10.,
                            w_canonical_unit_sphere=0.,
                            w_flow_grad=0.01,
-                           w_diverge=0.1,
+                           w_diverge=1,
                            write_logs=True,
                            return_data=False,
                            log_prefix='loss',
@@ -508,8 +508,8 @@ class BaseTrainer():
             # dz_gt = flow_z_gt[..., 1:] - flow_z_gt[..., :-1]
             # div_gt = torch.abs(dx_gt[mask]) + torch.abs(dy_gt[mask])+torch.abs(dz_gt[mask])
 
-            div_loss = torch.abs(torch.mean(div_pred - div_gt))
-            # print("divloss",div_loss)
+            div_loss = torch.mean(torch.abs(div_pred - div_gt))
+            print("divloss",div_loss)
         else:
             loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
