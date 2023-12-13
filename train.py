@@ -101,7 +101,7 @@ if __name__ == '__main__':
     if args.distributed:
         # args.local_rank = int(os.environ['LOCAL_RANK']) if 'LOCAL_RANK' in os.environ else 0
         torch.cuda.set_device(local_rank)
-        torch.distributed.init_process_group(backend="nccl", init_method="env://")
+        torch.distributed.init_process_group(backend="nccl", init_method="env://", rank=local_rank)
         synchronize()
 
     train(args)
