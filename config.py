@@ -1,5 +1,4 @@
 import configargparse
-import os
 
 
 def config_parser():
@@ -9,7 +8,7 @@ def config_parser():
     # general
     parser.add_argument('--data_dir', type=str, help='the directory for the video sequence')
     parser.add_argument('--expname', type=str, default='', help='experiment name')
-    parser.add_argument('--local_rank', type=int, default=int(os.environ['LOCAL_RANK']) if 'LOCAL_RANK' in os.environ else 0)
+    parser.add_argument('--local_rank', type=int, default=0, help='rank for distributed training')
     parser.add_argument('--save_dir', type=str, default='out/', help='output dir')
     parser.add_argument('--ckpt_path', type=str, default='', help='checkpoint path')
     parser.add_argument('--no_reload', action='store_true', help='do not reload the weights')
