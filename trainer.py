@@ -113,7 +113,7 @@ class BaseTrainer():
         self.img_dir = os.path.join(self.seq_dir, 'color')
         self.psf_path = os.path.join(self.seq_dir, 'psf_3D-NA0_4-dx1_1um-21_21_35.pt')
 
-        psf_file = torch.load(self.psf_path)
+        psf_file = torch.load(self.psf_path, map_location=self.device)
         self.psf = (psf_file.abs()**2).sum(dim= 0)
 
         img_files = sorted(glob.glob(os.path.join(self.img_dir, '*')))
@@ -479,24 +479,24 @@ class BaseTrainer():
 
         # image color loss
         pixel_coords, depth = torch.split(x2s_pred, dim=-1, split_size_or_sections=[2, 1])
-        d_pixel_coords = util.denormalize_coords(pixel_coords, trainer.h, trainer.w)
+        d_pixel_coords = util.denormalize_coords(pixel_coords, self.h, self.w)
         d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
-        psf_tensor = torch.zeros((self.h, self.w, 32), device=x2s_pred.device)
+        psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
         coords = d_volume_coords.long()
         psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
 
-        tensor_3d = psf_tensor.to('cuda')  
-        kernel_3d = self.psf.to('cuda')  
+        kernel_3d = self.psf 
         kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
-        convolved_tensor = F.conv3d(tensor_3d.unsqueeze(0).unsqueeze(0), kernel_3d, padding=(10, 10, 17))
-        convolved_tensor = convolved_tensor.squeeze(0).squeeze(0)
-        pred_img1 = convolved_tensor[:,:,16]
-        gt_img1 = self.images[px2s][:,:,0:1]
+        psf_t_sq = psf_tensor.unsqueeze(1)
+        convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
+        convolved_tensor = convolved_tensor.squeeze(1)
+        pred_img1 = convolved_tensor[:,:,:,16]
+        gt_img1 = self.images[ids2][:,:,:,0:1]
         
 
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
-            loss_rgb = F.mse_loss(pred_img1.to('cuda'), gt_img1.squeeze(-1).to('cuda'))
+            loss_rgb = F.mse_loss(pred_img1.to(self.device), gt_img1.squeeze(-1).to(self.device))
             #loss_rgb_grad = self.gradient_loss(pred_img1, gt_img1)
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
