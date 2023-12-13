@@ -37,7 +37,8 @@ class RAFTExhaustiveDataset(Dataset):
         self.seq_name = os.path.basename(self.seq_dir.rstrip('/'))
         self.img_dir = os.path.join(self.seq_dir, 'color')
         self.flow_dir = os.path.join(self.seq_dir, 'raft_exhaustive')
-        img_names = sorted(os.listdir(self.img_dir))
+        # img_names = sorted(os.listdir(self.img_dir))
+        img_names = sorted([i for i in os.listdir(self.img_dir) if i[0] != '.'])
         self.num_imgs = min(self.args.num_imgs, len(img_names))
         self.img_names = img_names[:self.num_imgs]
 
