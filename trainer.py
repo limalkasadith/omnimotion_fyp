@@ -509,7 +509,7 @@ class BaseTrainer():
             # div_gt = torch.abs(dx_gt[mask]) + torch.abs(dy_gt[mask])+torch.abs(dz_gt[mask])
 
             div_loss = torch.mean(torch.abs(div_pred - div_gt))
-            print("divloss",div_loss)
+            # print("divloss",div_loss)
         else:
             loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
