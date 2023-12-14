@@ -528,7 +528,7 @@ class BaseTrainer():
         canonical_unit_sphere_loss = self.canonical_sphere_loss(x1s_canonical_samples)
         # print("divloss",div_loss)
 
-        loss = 0*optical_flow_loss + \
+        loss = optical_flow_loss + \
                w_rgb * (loss_rgb + loss_rgb_grad) + \
                w_depth_range * depth_range_loss + \
                w_distortion * distortion_loss + \
