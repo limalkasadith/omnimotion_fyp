@@ -303,7 +303,7 @@ class BaseTrainer():
                'weights': weights,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
-               'rendered densities': rendered_density,
+               'rendered_densities': rendered_density,
                }
         return out
 
