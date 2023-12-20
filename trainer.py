@@ -290,18 +290,20 @@ class BaseTrainer():
         new_values_tensor = torch.tensor(new_values_array)
         temp=color.shape
 
-        zero_tensor = new_values_tensor.view(1, 1, -1).expand(temp[0],temp[1], -1).to(device=color.device)
+        PSF_tensor = new_values_tensor.view(1, 1, -1).expand(temp[0],temp[1], -1).to(device=color.device)
 
         # print("color",color.shape)
         # print("weights",weights.shape)
 
-        rendered_rgbs = torch.sum(zero_tensor.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
+        rendered_rgbs = torch.sum(PSF_tensor.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
         # print("rendered_rgbs",rendered_rgbs.shape)
+        rendered_density = torch.sum(PSF_tensor * density, dim=-1)
 
         out = {'colors': color,
                'weights': weights,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
+               'rendered densities': rendered_density,
                }
         return out
 
@@ -477,7 +479,7 @@ class BaseTrainer():
         out = self.get_blending_weights(x1s_canonical_samples)
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
-        pred_rgb1 = out['rendered_rgbs']
+        pred_rgb1 = out['rendered_density']
 
         mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
         blending_weights1 = blending_weights1 * mask.float()
@@ -501,7 +503,8 @@ class BaseTrainer():
         # print("mask",mask.shape);
 
         if mask.sum() > 0:
-            loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            loss_rgb = F.mse_loss(pred_rgb1, gt_rgb1[:,:,0])
             loss_rgb_grad = self.gradient_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
