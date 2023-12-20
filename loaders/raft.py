@@ -103,12 +103,21 @@ class RAFTExhaustiveDataset(Dataset):
         cycle_consistency_mask = masks[..., 0] > 0
         occlusion_mask = masks[..., 1] > 0
 
-        if frame_interval == 1:
-            mask = np.ones_like(cycle_consistency_mask)
-        else:
-            mask = cycle_consistency_mask | occlusion_mask
+        # if frame_interval == 1:
+        #     mask = np.ones_like(cycle_consistency_mask)
+        # else:
+        #     mask = cycle_consistency_mask | occlusion_mask
 
+        # if mask.sum() == 0:
+        #     invalid = True
+        #     mask = np.ones_like(cycle_consistency_mask)
+        # else:
+        #     invalid = False
+        ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.png'.format(img_name1.rstrip('.jpg')))
+        ints_masks = imageio.imread(ints_mask_file)/255
+        mask = ints_masks[..., 0] > 0
         if mask.sum() == 0:
+            print('zero')
             invalid = True
             mask = np.ones_like(cycle_consistency_mask)
         else:
