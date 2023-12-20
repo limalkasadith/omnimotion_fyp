@@ -270,7 +270,7 @@ class BaseTrainer():
         coord_indices = x1_samples.long().cpu()
 
         # Create a zero tensor with the same shape as coord_tensor
-        mapped_colors = torch.zeros_like(x1_samples, dtype=color.dtype).cpu()
+        mapped_colors = torch.zeros_like(x1_samples, dtype=color.dtype)
 
         # Use element-wise addition to add color values to the corresponding coordinates
         mapped_colors[coord_indices[:, :, :, 0], coord_indices[:, :, :, 1], coord_indices[:, :, :, 2]] += color
