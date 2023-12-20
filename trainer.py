@@ -289,7 +289,7 @@ class BaseTrainer():
         new_values_array = np.array(new_values, dtype=np.float32)
         new_values_tensor = torch.tensor(new_values_array)
 
-        zero_tensor = new_values_tensor.view(1, 1, -1).expand(8, 256, -1)
+        zero_tensor = new_values_tensor.view(1, 1, -1).expand(8, 256, -1).to(device=color.device)
 
         # print("color",color.shape)
         # print("weights",weights.shape)
