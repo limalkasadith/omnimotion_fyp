@@ -276,7 +276,7 @@ class BaseTrainer():
         T = torch.cat((torch.ones_like(T[..., 0:1]), T), dim=-1)  # [n_imgs, n_pts, n_samples]
 
         weights = alpha * T  # [n_imgs, n_pts, n_samples]
-        print("weights",weights.shape)
+        print("weights",weights)
 
         rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
 
