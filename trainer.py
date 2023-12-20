@@ -476,27 +476,30 @@ class BaseTrainer():
 
         mask = self.get_in_range_mask(px2s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
-
+        
+        psf = self.psf
+        psf_2D = psf[10, 10, 2:34]
         # image color loss
         pixel_coords, depth = torch.split(x2s_pred, dim=-1, split_size_or_sections=[2, 1])
         d_pixel_coords = util.denormalize_coords(pixel_coords, self.h, self.w)
         d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
-        psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
+        #psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
         coords = d_volume_coords.long()
-        psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
+        pred_rgb1 = (psf_2D[coords[:,:,2].squeeze(0)])* (x2s_dens)
+        #psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
 
-        kernel_3d = self.psf 
-        kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
-        psf_t_sq = psf_tensor.unsqueeze(1)
-        convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
-        convolved_tensor = convolved_tensor.squeeze(1)
-        pred_img1 = convolved_tensor[:,:,:,16]
-        gt_img1 = self.images[ids2][:,:,:,0:1]
+        # kernel_3d = self.psf 
+        # kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
+        # psf_t_sq = psf_tensor.unsqueeze(1)
+        # convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
+        # convolved_tensor = convolved_tensor.squeeze(1)
+        # pred_img1 = convolved_tensor[:,:,:,16]
+        # gt_img1 = self.images[ids2][:,:,:,0:1]
         
 
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
-            loss_rgb = F.mse_loss(pred_img1.to(self.device), gt_img1.squeeze(-1).to(self.device))
+            loss_rgb = F.mse_loss(pred_rgb1, gt_rgb1[:,:,0])
             #loss_rgb_grad = self.gradient_loss(pred_img1, gt_img1)
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
