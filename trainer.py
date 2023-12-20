@@ -505,7 +505,8 @@ class BaseTrainer():
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
             loss_rgb = F.mse_loss(pred_rgb1, gt_rgb1[:,:,0])
-            loss_rgb_grad = self.gradient_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            #oss_rgb_grad = self.gradient_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            loss_rgb_grad = self.gradient_loss(pred_rgb1, gt_rgb1[:,:,0])
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
             optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
