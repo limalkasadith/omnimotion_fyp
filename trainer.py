@@ -466,7 +466,7 @@ class BaseTrainer():
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
         #pred_rgb1 = out['rendered_rgbs']
-        pred_dens1 = out['rendered_density']
+        #pred_dens1 = out['rendered_density']
 
         #mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
         #blending_weights1 = blending_weights1 * mask.float()
@@ -487,7 +487,7 @@ class BaseTrainer():
         d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
         #psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
         coords = d_volume_coords.long()
-        pred_rgb1 = (psf_2D[coords[:,:,2].squeeze(0)])* (pred_dens1)
+        pred_rgb1 = (psf_2D[coords[:,:,2].squeeze(0)])* (x1s_samples)
         #psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
 
         # kernel_3d = self.psf 
