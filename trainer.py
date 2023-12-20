@@ -461,26 +461,28 @@ class BaseTrainer():
         x1s_samples, px1s_depths_samples = self.sample_3d_pts_for_pixels(px1s, return_depth=True, det=False)
         x2s_proj_samples, x1s_canonical_samples = self.get_predictions(x1s_samples, ids1, ids2, return_canonical=True)
         out = self.get_blending_weights(x1s_canonical_samples)
+        #colours= out['colors']
+        x1s_samples[:, :, :] = out['colors']
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
         #pred_rgb1 = out['rendered_rgbs']
         pred_dens1 = out['rendered_density']
 
-        mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
-        blending_weights1 = blending_weights1 * mask.float()
-        x2s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x2s_proj_samples, dim=-2)
+        #mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
+        #blending_weights1 = blending_weights1 * mask.float()
+        x1s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x1s_samples, dim=-2)
 
         # [n_imgs, n_pts, n_samples, 2]
-        px2s_proj_samples, px2s_proj_depth_samples = self.project(x2s_proj_samples, return_depth=True)
-        px2s_proj, px2s_proj_depths = self.project(x2s_pred, return_depth=True)
+        px1s_proj_samples, px1s_proj_depth_samples = self.project(x1s_samples, return_depth=True)
+        px1s_proj, px1s_proj_depths = self.project(x1s_pred, return_depth=True)
 
-        mask = self.get_in_range_mask(px2s_proj, max_padding)
+        mask = self.get_in_range_mask(px1s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
         
         psf = self.psf
         psf_2D = psf[10, 10, 2:34]
         # image color loss
-        pixel_coords, depth = torch.split(x2s_pred, dim=-1, split_size_or_sections=[2, 1])
+        pixel_coords, depth = torch.split(x1s_pred, dim=-1, split_size_or_sections=[2, 1])
         d_pixel_coords = util.denormalize_coords(pixel_coords, self.h, self.w)
         d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
         #psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
