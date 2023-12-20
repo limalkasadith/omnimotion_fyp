@@ -260,14 +260,21 @@ class BaseTrainer():
         density = F.sigmoid(out_canonical[..., -1] - 1.)
         return color, density
 
-    def get_blending_weights(self, x_canonical):
+    def get_blending_weights(self, x_canonical,x1_samples):
         '''
         query the nerf network to color, density and blending weights
         :param x_canonical: input canonical 3D locations
         :return: dict containing colors, weights, alphas and rendered rgbs
         '''
         color, density = self.get_canonical_color_and_density(x_canonical)
+        coord_indices = x1_samples.long().cpu()
 
+        # Create a zero tensor with the same shape as coord_tensor
+        mapped_colors = torch.zeros_like(x1_samples, dtype=color.dtype).cpu()
+
+        # Use element-wise addition to add color values to the corresponding coordinates
+        mapped_colors[coord_indices[:, :, :, 0], coord_indices[:, :, :, 1], coord_indices[:, :, :, 2]] += color
+        
         alpha = util.sigma2alpha(density)  # [n_imgs, n_pts, n_samples]
 
         # mask out the nearest 20% of samples. This trick may be helpful to avoid one local minimum solution
@@ -280,8 +287,22 @@ class BaseTrainer():
         T = torch.cat((torch.ones_like(T[..., 0:1]), T), dim=-1)  # [n_imgs, n_pts, n_samples]
 
         weights = alpha * T  # [n_imgs, n_pts, n_samples]
-
-        rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
+        new_values = [
+            0.00663828, 0.00142751, 0.00051902, 0.00746914, 0.02009048,
+            0.03039079, 0.02962560, 0.01622825, 0.00154073, 0.00841112,
+            0.06135462, 0.17226177, 0.32933718, 0.49641567, 0.62481731,
+            0.67303795, 0.62481731, 0.49641567, 0.32933718, 0.17226177,
+            0.06135462, 0.00841112, 0.00154073, 0.01622825, 0.02962560,
+            0.03039079, 0.02009048, 0.00746914, 0.00051902, 0.00142751,
+            0.00663828, 0.01066669
+        ]
+        new_values = torch.tensor(new_values, dtype=torch.float32)
+        new_values = new_values.view(1, 1, 32).to(device=weights.device)
+        
+        
+        result_weights = torch.mul(weights, new_values).to(device=weights.device)
+        rendered_rgbs = torch.sum(result_weights.unsqueeze(-1) * mapped_colors.to(device=weights.device), dim=-2)
+        #rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
         rendered_density = torch.sum(weights * density, dim=-1)  # [n_imgs, n_pts, 3]
 
         out = {'colors': color,
@@ -461,49 +482,38 @@ class BaseTrainer():
         # [n_pair, n_pts, n_samples, 3]
         x1s_samples, px1s_depths_samples = self.sample_3d_pts_for_pixels(px1s, return_depth=True, det=False)
         x2s_proj_samples, x1s_canonical_samples = self.get_predictions(x1s_samples, ids1, ids2, return_canonical=True)
-        out = self.get_blending_weights(x1s_canonical_samples)
+        out = self.get_blending_weights(x1s_canonical_samples,x1s_samples)
         #colours= out['colors']
-        x1s_samples[:, :, :] = out['colors']
+        
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
-        #pred_rgb1 = out['rendered_rgbs']
-        #pred_dens1 = out['rendered_density']
-
-        #mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
-        #blending_weights1 = blending_weights1 * mask.float()
-        x1s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x1s_samples, dim=-2)
+        pred_rgb1 = out['rendered_rgbs']
+        mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
+        blending_weights1 = blending_weights1 * mask.float()
+        x2s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x2s_proj_samples, dim=-2)
+        # x1s_pred= torch.sum(blending_weights1.unsqueeze(-1) * x1s_samples, dim=-2)
+        # print("px1s",px1s.shape)
+        # print("px2s",px2s.shape)
 
         # [n_imgs, n_pts, n_samples, 2]
-        px1s_proj_samples, px1s_proj_depth_samples = self.project(x1s_samples, return_depth=True)
-        px1s_proj, px1s_proj_depths = self.project(x1s_pred, return_depth=True)
-
-        mask = self.get_in_range_mask(px1s_proj, max_padding)
-        rgb_mask = self.get_in_range_mask(px1s)
+        px2s_proj_samples, px2s_proj_depth_samples = self.project(x2s_proj_samples, return_depth=True)
+        px2s_proj, px2s_proj_depths = self.project(x2s_pred, return_depth=True)
+        # px1s_proj,px1s_depths_samples = self.project(x1s_pred, return_depth=True)
+        # print("px1s_samples",px1s_proj.shape);
+        # print("px2s",px2s.shape);
+        # print("px2s_proj",px2s_proj.shape);
+        # print("px2s_proj_depth_samples",px2s_proj_depth_samples.shape);
         
-        psf = self.psf
-        psf_2D = psf[10, 10, 2:34]
-        # image color loss
-        pixel_coords, depth = torch.split(x1s_pred, dim=-1, split_size_or_sections=[2, 1])
-        d_pixel_coords = util.denormalize_coords(pixel_coords, self.h, self.w)
-        d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
-        #psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
-        coords = d_volume_coords.long()
-        pred_rgb1 = (psf_2D[coords[:,:,2].squeeze(0)])* (x1s_samples)
-        #psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
 
-        # kernel_3d = self.psf 
-        # kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
-        # psf_t_sq = psf_tensor.unsqueeze(1)
-        # convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
-        # convolved_tensor = convolved_tensor.squeeze(1)
-        # pred_img1 = convolved_tensor[:,:,:,16]
-        # gt_img1 = self.images[ids2][:,:,:,0:1]
+        mask = self.get_in_range_mask(px2s_proj, max_padding)
+        rgb_mask = self.get_in_range_mask(px1s)
+        # print("mask",mask.shape);
         
 
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
-            loss_rgb = F.mse_loss(pred_rgb1, gt_rgb1[:,:,0])
-            #loss_rgb_grad = self.gradient_loss(pred_img1, gt_img1)
+            loss_rgb = F.mse_loss(pred_rgb1, gt_rgb1)
+            loss_rgb_grad = self.gradient_loss(pred_rgb1, gt_img1)
 
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
             optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
