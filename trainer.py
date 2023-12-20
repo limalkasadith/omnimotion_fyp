@@ -277,6 +277,7 @@ class BaseTrainer():
 
         weights = alpha * T  # [n_imgs, n_pts, n_samples]
         print("color",color.shape)
+        print("weights",weights.shape)
 
         rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
 
