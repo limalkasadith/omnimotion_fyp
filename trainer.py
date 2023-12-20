@@ -286,6 +286,7 @@ class BaseTrainer():
 
         out = {'colors': color,
                'weights': weights,
+               'densities': density,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
                'rendered_density' : rendered_density,
