@@ -297,12 +297,12 @@ class BaseTrainer():
         # print("color",color.shape)
         # print("weights",weights.shape)
 
-        rendered_rgbs = torch.sum(new_weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
+        rendered_rgbs = torch.sum(PSF_tensor.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
         # print("rendered_rgbs",rendered_rgbs.shape)
-        rendered_density = torch.sum(new_weights * density, dim=-1)
+        rendered_density = torch.sum(PSF_tensor * density, dim=-1)
 
         out = {'colors': color,
-               'weights': new_weights,
+               'weights': weights,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
                'rendered_densities': rendered_density,
