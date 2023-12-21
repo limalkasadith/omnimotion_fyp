@@ -289,18 +289,20 @@ class BaseTrainer():
         new_values_array = np.array(new_values, dtype=np.float32)
         new_values_tensor = torch.tensor(new_values_array)
         temp=color.shape
+        
 
         PSF_tensor = new_values_tensor.view(1, 1, -1).expand(temp[0],temp[1], -1).to(device=color.device)
+        new_weights=    weights * PSF_tensor
 
         # print("color",color.shape)
         # print("weights",weights.shape)
 
-        rendered_rgbs = torch.sum(PSF_tensor.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
+        rendered_rgbs = torch.sum(new_weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
         # print("rendered_rgbs",rendered_rgbs.shape)
-        rendered_density = torch.sum(PSF_tensor * density, dim=-1)
+        rendered_density = torch.sum(new_weights * density, dim=-1)
 
         out = {'colors': color,
-               'weights': weights,
+               'weights': new_weights,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
                'rendered_densities': rendered_density,
