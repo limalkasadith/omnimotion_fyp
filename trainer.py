@@ -306,7 +306,7 @@ class BaseTrainer():
         rendered_density = torch.sum(weights * density, dim=-1)  # [n_imgs, n_pts, 3]
 
         out = {'colors': color,
-               'weights': result_weights,
+               'weights': weights,
                'densities': density,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
@@ -955,7 +955,7 @@ class BaseTrainer():
                     logstr += ' {}: {:.6f}'.format(k, self.scalars_to_log[k])
                     if k != 'time':
                         writer.add_scalar(k, self.scalars_to_log[k], step)
-                print(logstr)
+                #print(logstr)
 
             if step % self.args.i_img == 0:
                 # flow
