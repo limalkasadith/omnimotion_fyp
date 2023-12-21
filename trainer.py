@@ -317,7 +317,7 @@ class BaseTrainer():
     def get_pred_rgbs_for_pixels(self, ids, pixels, return_weights=False):
         xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
         xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
-        out = self.get_blending_weights(xs_canonical_samples)
+        out = self.get_blending_weights(xs_canonical_samples,xs_samples)
         blending_weights = out['weights']
         rendered_rgbs = out['rendered_rgbs']
         if return_weights:
@@ -333,7 +333,7 @@ class BaseTrainer():
         '''
         xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
         xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
-        out = self.get_blending_weights(xs_canonical_samples)
+        out = self.get_blending_weights(xs_canonical_samples,xs_samples)
         pred_depths = torch.sum(out['weights'].unsqueeze(-1) * pxs_depths_samples, dim=-2)
         return pred_depths  # [n_imgs, n_pts, 1]
 
@@ -345,7 +345,7 @@ class BaseTrainer():
         '''
         xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
         xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
-        out = self.get_blending_weights(xs_canonical_samples)
+        out = self.get_blending_weights(xs_canonical_samples,xs_samples)
         pred_depths = torch.sum(out['weights'].unsqueeze(-1) * pxs_depths_samples, dim=-2)
         rendered_rgbs = out['rendered_rgbs']
         return rendered_rgbs, pred_depths  # [n_imgs, n_pts, 1]
@@ -382,7 +382,7 @@ class BaseTrainer():
         # [n_pair, n_pts, n_samples, 3]
         x1s_samples = self.sample_3d_pts_for_pixels(px1s)
         x2s_proj_samples, xs_canonical_samples = self.get_predictions(x1s_samples, ids1, ids2, return_canonical=True)
-        out = self.get_blending_weights(xs_canonical_samples)  # [n_imgs, n_pts, n_samples]
+        out = self.get_blending_weights(xs_canonical_samples,x1s_samples)  # [n_imgs, n_pts, n_samples]
         if use_max_loc:
             blending_weights = out['weights']
             indices = torch.max(blending_weights, dim=-1, keepdim=True)[1]
@@ -400,7 +400,7 @@ class BaseTrainer():
                                                                     use_max_loc=use_max_loc)
         px2s_pred_samples, px2s_pred_depths_samples = self.sample_3d_pts_for_pixels(px2s_pred, return_depth=True)
         xs_canonical_samples = self.get_prediction_one_way(px2s_pred_samples, ids2)
-        out = self.get_blending_weights(xs_canonical_samples)
+        out = self.get_blending_weights(xs_canonical_samples,px2s_pred_samples)
         weights = out['weights']
         eps = 1.1 * (self.args.max_depth - self.args.min_depth) / self.args.num_samples_ray
         mask_zero = px2s_pred_depths_samples.squeeze(-1) >= (depth_proj.expand(-1, -1, self.args.num_samples_ray) - eps)
