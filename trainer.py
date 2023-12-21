@@ -306,7 +306,7 @@ class BaseTrainer():
         rendered_density = torch.sum(weights * density, dim=-1)  # [n_imgs, n_pts, 3]
 
         out = {'colors': color,
-               'weights': weights,
+               'weights': result_weights,
                'densities': density,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
