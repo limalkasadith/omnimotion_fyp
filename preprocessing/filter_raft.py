@@ -21,18 +21,31 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from chain_raft import gen_grid, normalize_coords
 import warnings
+from PIL import Image
 
 warnings.filterwarnings("ignore")
 
 DEVICE = 'cuda'
-
+def load_image3(imfile):
+    img = np.array(Image.open(imfile)).astype(np.uint8)
+    img= Image.fromarray(img)
+    img = Image.merge("RGB", (img, img, img))
+    img= np.array(img)
+    #print('testttttttt',img.shape)
+    #img = img[:, :, np.newaxis]
+    
+    return img
 
 def run_filtering(args):
     feature_name = 'dino'
     scene_dir = args.data_dir
     print('flitering raft optical flow for {}....'.format(scene_dir))
 
+    # img_files = sorted(glob.glob(os.path.join(scene_dir, 'color')))
+    #print('dir', scene_dir)
+    #img_files = os.listdir(scene_dir)
     img_files = sorted(glob.glob(os.path.join(scene_dir, 'color', '*')))
+    #print(img_files)
     num_imgs = len(img_files)
     pbar = tqdm(total=num_imgs * (num_imgs - 1))
 
@@ -42,13 +55,17 @@ def run_filtering(args):
 
     count_out_dir = os.path.join(scene_dir, 'count_maps')
     os.makedirs(count_out_dir, exist_ok=True)
-
-    h, w = imageio.imread(img_files[0]).shape[:2]
-    grid = gen_grid(h, w, device=DEVICE).permute(2, 0, 1)[None]
+    #print('len', len(img_files))
+    img = np.array(Image.open(img_files[0]))
+    img= Image.fromarray(img)
+    img = Image.merge("RGB", (img, img, img))
+    img= np.array(img)
+    h, w = img.shape[:2]
+    grid = gen_grid(h, w, device='cpu').permute(2, 0, 1)[None]
     grid_normed = normalize_coords(grid.squeeze().permute(1, 2, 0), h, w)  # [h, w, 2]
 
     features = [torch.from_numpy(np.load(os.path.join(scene_dir, 'features', feature_name,
-                                                      os.path.basename(img_file) + '.npy'))).float().to(DEVICE)
+                                                      os.path.basename(img_file) + '.npy'))).float()
                 for img_file in img_files]
 
     flow_stats = {}
@@ -56,6 +73,7 @@ def run_filtering(args):
     for i in range(num_imgs):
         imgname_i = os.path.basename(img_files[i])
         feature_i = features[i].permute(2, 0, 1)[None]
+        print('test0',feature_i.shape, grid_normed[None].shape  )
         feature_i_sampled = F.grid_sample(feature_i, grid_normed[None], align_corners=True)[0].permute(1, 2, 0)
 
         for j in range(num_imgs):
@@ -64,18 +82,20 @@ def run_filtering(args):
             frame_interval = abs(i - j)
             imgname_j = os.path.basename(img_files[j])
             flow_f = np.load(os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_i, imgname_j)))
-            flow_f = torch.from_numpy(flow_f).float().permute(2, 0, 1)[None].cuda()
+            flow_f = torch.from_numpy(flow_f).float().permute(2, 0, 1)[None]
             flow_b = np.load(os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_j, imgname_i)))
-            flow_b = torch.from_numpy(flow_b).float().permute(2, 0, 1)[None].cuda()
+            flow_b = torch.from_numpy(flow_b).float().permute(2, 0, 1)[None]
 
             coord2 = flow_f + grid
             coord2_normed = normalize_coords(coord2.squeeze().permute(1, 2, 0), h, w)  # [h, w, 2]
+            #print('test1',flow_b.shape,coord2_normed[None].shape  )
             flow_21_sampled = F.grid_sample(flow_b, coord2_normed[None], align_corners=True)
             map_i = flow_f + flow_21_sampled
             fb_discrepancy = torch.norm(map_i.squeeze(), dim=0)
             mask_cycle = fb_discrepancy < args.cycle_th
 
             feature_j = features[j].permute(2, 0, 1)[None]
+            #print('test2',feature_j.shape,coord2_normed[None].shape  )
             feature_j_sampled = F.grid_sample(feature_j, coord2_normed[None], align_corners=True)[0].permute(1, 2, 0)
             feature_sim = torch.cosine_similarity(feature_i_sampled, feature_j_sampled, dim=-1)
             feature_mask = feature_sim > 0.5
@@ -123,3 +143,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     run_filtering(args)
+
