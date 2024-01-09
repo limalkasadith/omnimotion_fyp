@@ -21,11 +21,12 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 import warnings
+from PIL import Image
 
 warnings.filterwarnings("ignore")
 
 
-DEVICE = 'cuda'
+DEVICE = 'cpu'
 
 
 def gen_grid(h, w, device, normalize=False, homogeneous=False):
@@ -48,13 +49,22 @@ def normalize_coords(coords, h, w, no_shift=False):
         return coords / torch.tensor([w-1., h-1.], device=coords.device) * 2
     else:
         return coords / torch.tensor([w-1., h-1.], device=coords.device) * 2 - 1.
-
+def load_image2(imfile):
+    img = np.array(Image.open(imfile)).astype(np.uint8)
+    img= Image.fromarray(img)
+    img = Image.merge("RGB", (img, img, img))
+    img= np.array(img)
+    #print('testttttttt',img.shape)
+    #img = img[:, :, np.newaxis]
+    
+    return img
 
 def run(args):
     feature_name = 'dino'
     scene_dir = args.data_dir
     print('chaining raft optical flow for {}....'.format(scene_dir))
 
+    #img_files = sorted(glob.glob(scene_dir))
     img_files = sorted(glob.glob(os.path.join(scene_dir, 'color', '*')))
     num_imgs = len(img_files)
     pbar = tqdm(total=num_imgs*(num_imgs-1))
@@ -67,12 +77,21 @@ def run(args):
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(out_mask_dir, exist_ok=True)
     os.makedirs(count_out_dir, exist_ok=True)
-    h, w = imageio.imread(img_files[0]).shape[:2]
-    grid = gen_grid(h, w, 'cuda')[None]  # [b, h, w, 2]
+
+    img = np.array(Image.open(img_files[0])).astype(np.uint8)
+    img= Image.fromarray(img)
+    img = Image.merge("RGB", (img, img, img))
+    img= np.array(img)
+    h, w = img.shape[:2]
+    
+    #h, w = imageio.imread(img_files[0]).shape[:2]
+    grid = gen_grid(h, w, 'cpu')[None]  # [b, h, w, 2]
     flow_stats = {}
     count_maps = np.zeros((num_imgs, h, w), dtype=np.uint16)
+    
+    
 
-    images = [torch.from_numpy(imageio.imread(img_file) / 255.).float().permute(2, 0, 1)[None].to(DEVICE)
+    images = [torch.from_numpy(load_image2(img_file) / 255.).float().permute(2, 0, 1)[None].to(DEVICE)
               for img_file in img_files]
     features = [torch.from_numpy(np.load(os.path.join(scene_dir, 'features', feature_name,
                                                       os.path.basename(img_file) + '.npy'))).float().to(DEVICE)
@@ -83,7 +102,7 @@ def run(args):
         imgname_i_plus_1 = os.path.basename(img_files[i + 1])
         start_flow_file = os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_i, imgname_i_plus_1))
         start_flow = np.load(start_flow_file)
-        start_flow = torch.from_numpy(start_flow).float()[None].cuda()  # [b, h, w, 2]
+        start_flow = torch.from_numpy(start_flow).float()[None]  # [b, h, w, 2]
 
         start_mask_file = start_flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
         start_cycle_mask = imageio.imread(start_mask_file)[..., 0] > 0
@@ -99,7 +118,7 @@ def run(args):
             imgname_j = os.path.basename(img_files[j])
             direct_flow_file = os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_i, imgname_j))
             direct_flow = np.load(direct_flow_file)
-            direct_flow = torch.from_numpy(direct_flow).float()[None].cuda()  # [b, h, w, 2]
+            direct_flow = torch.from_numpy(direct_flow).float()[None]  # [b, h, w, 2]
             direct_mask_file = direct_flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
             direct_masks = imageio.imread(direct_mask_file)
             direct_cycle_mask = direct_masks[..., 0] > 0
@@ -140,13 +159,13 @@ def run(args):
             imgname_j_plus_1 = os.path.basename(img_files[j + 1])
             flow_file = os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_j, imgname_j_plus_1))
             curr_flow = np.load(flow_file)
-            curr_flow = torch.from_numpy(curr_flow).float()[None].cuda()  # [b, h, w, 2]
+            curr_flow = torch.from_numpy(curr_flow).float()[None]  # [b, h, w, 2]
             curr_mask_file = flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
             curr_cycle_mask = imageio.imread(curr_mask_file)[..., 0] > 0
 
             flow_curr_sampled = F.grid_sample(curr_flow.permute(0, 3, 1, 2), curr_coords_normed,
                                               align_corners=True).permute(0, 2, 3, 1)
-            curr_cycle_mask_sampled = F.grid_sample(torch.from_numpy(curr_cycle_mask).float()[None, None].cuda(),
+            curr_cycle_mask_sampled = F.grid_sample(torch.from_numpy(curr_cycle_mask).float()[None, None],
                                                     curr_coords_normed, align_corners=True).squeeze().cpu().numpy() == 1
             # update
             accumulated_flow += flow_curr_sampled
@@ -157,7 +176,7 @@ def run(args):
         imgname_i_minus_1 = os.path.basename(img_files[i - 1])
         start_flow_file = os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_i, imgname_i_minus_1))
         start_flow = np.load(start_flow_file)
-        start_flow = torch.from_numpy(start_flow).float()[None].cuda()  # [b, h, w, 2]
+        start_flow = torch.from_numpy(start_flow).float()[None] # [b, h, w, 2]
 
         start_mask_file = start_flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
         start_cycle_mask = imageio.imread(start_mask_file)[..., 0] > 0
@@ -173,7 +192,7 @@ def run(args):
             imgname_j = os.path.basename(img_files[j])
             direct_flow_file = os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_i, imgname_j))
             direct_flow = np.load(direct_flow_file)
-            direct_flow = torch.from_numpy(direct_flow).float()[None].cuda()  # [b, h, w, 2]
+            direct_flow = torch.from_numpy(direct_flow).float()[None] # [b, h, w, 2]
             direct_mask_file = direct_flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
             direct_masks = imageio.imread(direct_mask_file)
             direct_cycle_mask = direct_masks[..., 0] > 0
@@ -214,13 +233,13 @@ def run(args):
             imgname_j_minus_1 = os.path.basename(img_files[j - 1])
             flow_file = os.path.join(scene_dir, 'raft_exhaustive', '{}_{}.npy'.format(imgname_j, imgname_j_minus_1))
             curr_flow = np.load(flow_file)
-            curr_flow = torch.from_numpy(curr_flow).float()[None].cuda()  # [b, h, w, 2]
+            curr_flow = torch.from_numpy(curr_flow).float()[None]  # [b, h, w, 2]
             curr_mask_file = flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
             curr_cycle_mask = imageio.imread(curr_mask_file)[..., 0] > 0
 
             flow_curr_sampled = F.grid_sample(curr_flow.permute(0, 3, 1, 2), curr_coords_normed,
                                               align_corners=True).permute(0, 2, 3, 1)
-            curr_cycle_mask_sampled = F.grid_sample(torch.from_numpy(curr_cycle_mask).float()[None, None].cuda(),
+            curr_cycle_mask_sampled = F.grid_sample(torch.from_numpy(curr_cycle_mask).float()[None, None],
                                                     curr_coords_normed, align_corners=True).squeeze().cpu().numpy() == 1
             # update
             accumulated_flow += flow_curr_sampled
