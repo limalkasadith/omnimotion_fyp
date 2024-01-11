@@ -125,8 +125,8 @@ class RAFTExhaustiveDataset(Dataset):
         ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.png'.format(img_name1.rstrip('.jpg')))
         ints_masks = imageio.imread(ints_mask_file)/255
         mask = ints_masks[..., 0] > 0
-        cycle_consistency_mask = masks[..., 0] > 0
-        occlusion_mask = masks[..., 1] > 0
+        cycle_consistency_mask = mask[..., 0] > 0
+        occlusion_mask = mask[..., 1] > 0
         if mask.sum() == 0:
             print('zero')
             invalid = True
