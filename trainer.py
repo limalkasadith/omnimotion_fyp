@@ -472,7 +472,7 @@ class BaseTrainer():
         px1s = batch['pts1'].to(self.device)
         #px2s = batch['pts2'].to(self.device)
         gt_rgb1 = batch['gt_rgb1'].to(self.device)
-        weights = batch['weights'].to(self.device)
+        #weights = batch['weights'].to(self.device)
         num_pts = px1s.shape[1]
 
         # [n_pair, n_pts, n_samples, 3]
