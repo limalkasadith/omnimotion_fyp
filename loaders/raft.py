@@ -165,7 +165,7 @@ class RAFTExhaustiveDataset(Dataset):
         #pts2 = torch.from_numpy(coord2[mask][select_ids]).float()
         #pts2_normed = normalize_coords(pts2, self.h, self.w)[None, None]
 
-        covisible_mask = torch.from_numpy(cycle_consistency_mask[select_ids]).float()[..., None]
+        covisible_mask = torch.from_numpy(cycle_consistency_mask[mask][select_ids]).float()[..., None]
         weights = torch.ones_like(covisible_mask) * pair_weight
 
         gt_rgb1 = torch.from_numpy(img1[mask][select_ids]).float()
