@@ -175,7 +175,7 @@ class RAFTExhaustiveDataset(Dataset):
             weights = torch.zeros_like(weights)
 
         if np.random.choice([0, 1]):
-            id1, id2, pts1, pts2, gt_rgb1, gt_rgb2 = id2, id1, pts2, pts1, gt_rgb2, gt_rgb1
+            id1, id2, pts1, gt_rgb1, gt_rgb2 = id2, id1,  pts1, gt_rgb2, gt_rgb1
             weights[covisible_mask == 0.] = 0
 
         data = {'ids1': id1,
