@@ -183,8 +183,8 @@ class RAFTExhaustiveDataset(Dataset):
         # gt_rgb2 = F.grid_sample(torch.from_numpy(img2).float().permute(2, 0, 1)[None], pts2_normed,
         #                         align_corners=True).squeeze().T
 
-        if invalid:
-            weights = torch.zeros_like(weights)
+        # if invalid:
+        #     weights = torch.zeros_like(weights)
 
         if np.random.choice([0, 1]):
             id1, id2, pts1, gt_rgb1, gt_rgb2 = id2, id1,  pts1, gt_rgb2, gt_rgb1
