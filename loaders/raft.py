@@ -107,7 +107,7 @@ class RAFTExhaustiveDataset(Dataset):
         #masks = imageio.imread(mask_file) / 255.
 
         coord1 = self.grid
-        coord2 = self.grid + flow
+        #coord2 = self.grid + flow
 
         #cycle_consistency_mask = masks[..., 0] > 0
         #occlusion_mask = masks[..., 1] > 0
@@ -160,15 +160,16 @@ class RAFTExhaustiveDataset(Dataset):
         pair_weight = np.cos((frame_interval - 1.) / max_interval * np.pi / 2)
 
         pts1 = torch.from_numpy(coord1[mask][select_ids]).float()
-        pts2 = torch.from_numpy(coord2[mask][select_ids]).float()
-        pts2_normed = normalize_coords(pts2, self.h, self.w)[None, None]
+        #pts2 = torch.from_numpy(coord2[mask][select_ids]).float()
+        #pts2_normed = normalize_coords(pts2, self.h, self.w)[None, None]
 
-        covisible_mask = torch.from_numpy(cycle_consistency_mask[mask][select_ids]).float()[..., None]
-        weights = torch.ones_like(covisible_mask) * pair_weight
+        #covisible_mask = torch.from_numpy(cycle_consistency_mask[mask][select_ids]).float()[..., None]
+        #weights = torch.ones_like(covisible_mask) * pair_weight
 
         gt_rgb1 = torch.from_numpy(img1[mask][select_ids]).float()
-        gt_rgb2 = F.grid_sample(torch.from_numpy(img2).float().permute(2, 0, 1)[None], pts2_normed,
-                                align_corners=True).squeeze().T
+        gt_rgb2 = torch.from_numpy(img2[mask][select_ids]).float()
+        # gt_rgb2 = F.grid_sample(torch.from_numpy(img2).float().permute(2, 0, 1)[None], pts2_normed,
+        #                         align_corners=True).squeeze().T
 
         if invalid:
             weights = torch.zeros_like(weights)
@@ -180,10 +181,10 @@ class RAFTExhaustiveDataset(Dataset):
         data = {'ids1': id1,
                 'ids2': id2,
                 'pts1': pts1,  # [n_pts, 2]
-                'pts2': pts2,  # [n_pts, 2]
+                #'pts2': pts2,  # [n_pts, 2]
                 'gt_rgb1': gt_rgb1,  # [n_pts, 3]
                 'gt_rgb2': gt_rgb2,
                 'weights': weights,  # [n_pts, 1]
-                'covisible_mask': covisible_mask,  # [n_pts, 1]
+                #'covisible_mask': covisible_mask,  # [n_pts, 1]
                 }
         return data
