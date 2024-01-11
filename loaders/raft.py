@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 import multiprocessing as mp
 from util import normalize_coords, gen_grid_np
 from PIL import Image
+import random
 
 def load_image4(imfile):
     img = np.array(Image.open(imfile)).astype(np.uint8)
@@ -71,37 +72,44 @@ class RAFTExhaustiveDataset(Dataset):
             id1 = np.random.choice(self.num_imgs, p=id1_sample_weights)
         else:
             id1 = idx % self.num_imgs
+        def select_random_id(id1):            
+            while id2 == id1:
+                id2 = random.randint(max(id1 - max_interval, 0), min(id1 + max_interval, self.num_imgs - 1))
+            return id2
 
         img_name1 = self.img_names[id1]
         max_interval = min(self.max_interval.value, self.num_imgs - 1)
-        img2_candidates = sorted(list(self.sample_weights[img_name1].keys()))
-        img2_candidates = img2_candidates[max(id1 - max_interval, 0):min(id1 + max_interval, self.num_imgs - 1)]
+        id2= select_random_id(id1)
+        img_name2= self.img_names[id2]
+        
+        # img2_candidates = sorted(list(self.sample_weights[img_name1].keys()))
+        # img2_candidates = img2_candidates[max(id1 - max_interval, 0):min(id1 + max_interval, self.num_imgs - 1)]
 
-        # sample more often from i-1 and i+1
-        id2s = np.array([self.img_names.index(n) for n in img2_candidates])
-        sample_weights = np.array([self.sample_weights[img_name1][i] for i in img2_candidates])
-        sample_weights /= np.sum(sample_weights)
-        sample_weights[np.abs(id2s - id1) <= 1] = 0.5
-        sample_weights /= np.sum(sample_weights)
+        # # sample more often from i-1 and i+1
+        # id2s = np.array([self.img_names.index(n) for n in img2_candidates])
+        # sample_weights = np.array([self.sample_weights[img_name1][i] for i in img2_candidates])
+        # sample_weights /= np.sum(sample_weights)
+        # sample_weights[np.abs(id2s - id1) <= 1] = 0.5
+        # sample_weights /= np.sum(sample_weights)
 
-        img_name2 = np.random.choice(img2_candidates, p=sample_weights)
-        id2 = self.img_names.index(img_name2)
+        # img_name2 = np.random.choice(img2_candidates, p=sample_weights)
+        # id2 = self.img_names.index(img_name2)
         frame_interval = abs(id1 - id2)
 
         # read image, flow and confidence
         img1 = load_image4(os.path.join(self.img_dir, img_name1)) / 255.
         img2 = load_image4(os.path.join(self.img_dir, img_name2)) / 255.
 
-        flow_file = os.path.join(self.flow_dir, '{}_{}.npy'.format(img_name1, img_name2))
-        flow = np.load(flow_file)
-        mask_file = flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
-        masks = imageio.imread(mask_file) / 255.
+        #flow_file = os.path.join(self.flow_dir, '{}_{}.npy'.format(img_name1, img_name2))
+        #flow = np.load(flow_file)
+       # mask_file = flow_file.replace('raft_exhaustive', 'raft_masks').replace('.npy', '.png')
+        #masks = imageio.imread(mask_file) / 255.
 
         coord1 = self.grid
         coord2 = self.grid + flow
 
-        cycle_consistency_mask = masks[..., 0] > 0
-        occlusion_mask = masks[..., 1] > 0
+        #cycle_consistency_mask = masks[..., 0] > 0
+        #occlusion_mask = masks[..., 1] > 0
 
         # if frame_interval == 1:
         #     mask = np.ones_like(cycle_consistency_mask)
