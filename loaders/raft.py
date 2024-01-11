@@ -48,8 +48,8 @@ class RAFTExhaustiveDataset(Dataset):
         self.max_interval = mp.Value('i', max_interval)
         self.num_pts = self.args.num_pts
         self.grid = gen_grid_np(self.h, self.w)
-        flow_stats = json.load(open(os.path.join(self.seq_dir, 'flow_stats.json')))
-        self.sample_weights = get_sample_weights(flow_stats)
+     #   flow_stats = json.load(open(os.path.join(self.seq_dir, 'flow_stats.json')))
+      #  self.sample_weights = get_sample_weights(flow_stats)
 
     def __len__(self):
         return self.num_imgs * 100000
