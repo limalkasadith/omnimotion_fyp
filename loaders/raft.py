@@ -125,24 +125,24 @@ class RAFTExhaustiveDataset(Dataset):
         ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.png'.format(img_name1.rstrip('.jpg')))
         ints_masks = imageio.imread(ints_mask_file)/255
         mask = ints_masks[..., 0] > 0
-        cycle_consistency_mask = mask[..., 0] > 0
-        occlusion_mask = mask[..., 1] > 0
-        if frame_interval == 1:
-            mask = np.ones_like(cycle_consistency_mask)
-        else:
-            mask = cycle_consistency_mask | occlusion_mask
+        # cycle_consistency_mask = mask[..., 0] > 0
+        # occlusion_mask = mask[..., 1] > 0
+        # if frame_interval == 1:
+        #     mask = np.ones_like(cycle_consistency_mask)
+        # else:
+        #     mask = cycle_consistency_mask | occlusion_mask
 
-        if mask.sum() == 0:
-            invalid = True
-            mask = np.ones_like(cycle_consistency_mask)
-        else:
-            invalid = False
-        if mask.sum() == 0:
-            print('zero')
-            invalid = True
-            mask = np.ones_like(cycle_consistency_mask)
-        else:
-            invalid = False
+        # if mask.sum() == 0:
+        #     invalid = True
+        #     mask = np.ones_like(cycle_consistency_mask)
+        # else:
+        #     invalid = False
+        # if mask.sum() == 0:
+        #     print('zero')
+        #     invalid = True
+        #     mask = np.ones_like(cycle_consistency_mask)
+        # else:
+        #     invalid = False
 
         if len(cached_flow_pred_files) > 0 and self.args.use_error_map:
             cached_flow_pred_file = cached_flow_pred_files[id1]
@@ -169,14 +169,14 @@ class RAFTExhaustiveDataset(Dataset):
             # else:
             select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts))
 
-        pair_weight = np.cos((frame_interval - 1.) / max_interval * np.pi / 2)
+        #pair_weight = np.cos((frame_interval - 1.) / max_interval * np.pi / 2)
 
         pts1 = torch.from_numpy(coord1[mask][select_ids]).float()
         #pts2 = torch.from_numpy(coord2[mask][select_ids]).float()
         #pts2_normed = normalize_coords(pts2, self.h, self.w)[None, None]
 
-        covisible_mask = torch.from_numpy(cycle_consistency_mask[mask][select_ids]).float()[..., None]
-        weights = torch.ones_like(covisible_mask) * pair_weight
+        #covisible_mask = torch.from_numpy(cycle_consistency_mask[mask][select_ids]).float()[..., None]
+        #weights = torch.ones_like(covisible_mask) * pair_weight
 
         gt_rgb1 = torch.from_numpy(img1[mask][select_ids]).float()
         gt_rgb2 = torch.from_numpy(img2[mask][select_ids]).float()
@@ -188,7 +188,7 @@ class RAFTExhaustiveDataset(Dataset):
 
         if np.random.choice([0, 1]):
             id1, id2, pts1, gt_rgb1, gt_rgb2 = id2, id1,  pts1, gt_rgb2, gt_rgb1
-            weights[covisible_mask == 0.] = 0
+            #weights[covisible_mask == 0.] = 0
 
         data = {'ids1': id1,
                 'ids2': id2,
@@ -196,7 +196,7 @@ class RAFTExhaustiveDataset(Dataset):
                 #'pts2': pts2,  # [n_pts, 2]
                 'gt_rgb1': gt_rgb1,  # [n_pts, 3]
                 'gt_rgb2': gt_rgb2,
-                'weights': weights,  # [n_pts, 1]
-                'covisible_mask': covisible_mask,  # [n_pts, 1]
+                #'weights': weights,  # [n_pts, 1]
+                #'covisible_mask': covisible_mask,  # [n_pts, 1]
                 }
         return data
