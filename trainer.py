@@ -470,7 +470,7 @@ class BaseTrainer():
         ids1 = batch['ids1'].numpy()
         ids2 = batch['ids2'].numpy()
         px1s = batch['pts1'].to(self.device)
-        px2s = batch['pts2'].to(self.device)
+        #px2s = batch['pts2'].to(self.device)
         gt_rgb1 = batch['gt_rgb1'].to(self.device)
         weights = batch['weights'].to(self.device)
         num_pts = px1s.shape[1]
@@ -510,8 +510,8 @@ class BaseTrainer():
             #oss_rgb_grad = self.gradient_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
             loss_rgb_grad = self.gradient_loss(pred_rgb1, gt_rgb1[:,:,0])
 
-            optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
-            optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
+            #optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
+            #optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
 
             # flow_x_pred, flow_y_pred,flow_z_pred = torch.split(px2s_proj, 1, dim=-1)
             # flow_x_gt, flow_y_gt,flow_z_gt = torch.split(px2s, 1, dim=-1)
@@ -535,8 +535,8 @@ class BaseTrainer():
 
             div_loss = torch.mean(torch.abs(div_pred - div_gt))
             # print("divloss",div_loss)
-        else:
-            loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
+        # else:
+        #     loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
         # mapped depth should be within the predefined range
         depth_range_loss = compute_depth_range_loss(px2s_proj_depth_samples, depth_min_th, depth_max_th)
@@ -553,7 +553,7 @@ class BaseTrainer():
         canonical_unit_sphere_loss = self.canonical_sphere_loss(x1s_canonical_samples)
         # print("divloss",div_loss)
 
-        loss = optical_flow_loss + \
+        loss = 
                w_rgb * (loss_rgb + loss_rgb_grad) + \
                w_depth_range * depth_range_loss + \
                w_distortion * distortion_loss + \
@@ -566,7 +566,7 @@ class BaseTrainer():
 
         if write_logs:
             self.scalars_to_log['{}/Loss'.format(log_prefix)] = loss.item()
-            self.scalars_to_log['{}/loss_flow'.format(log_prefix)] = optical_flow_loss.item()
+            #self.scalars_to_log['{}/loss_flow'.format(log_prefix)] = optical_flow_loss.item()
             self.scalars_to_log['{}/loss_rgb'.format(log_prefix)] = loss_rgb.item()
             self.scalars_to_log['{}/loss_depth_range'.format(log_prefix)] = depth_range_loss.item()
             self.scalars_to_log['{}/loss_distortion'.format(log_prefix)] = distortion_loss.item()
