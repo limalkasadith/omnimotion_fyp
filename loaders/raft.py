@@ -147,15 +147,15 @@ class RAFTExhaustiveDataset(Dataset):
             select_ids = np.random.choice(np.concatenate([select_ids_error, select_ids_random]), self.num_pts,
                                           replace=False)
         else:
-            if self.args.use_count_map:
-                count_map = imageio.imread(os.path.join(self.seq_dir, 'count_maps', img_name1.replace('.jpg', '.png')))
-                pixel_sample_weight = 1 / np.sqrt(count_map + 1.)
-                pixel_sample_weight = pixel_sample_weight[mask]
-                pixel_sample_weight /= pixel_sample_weight.sum()
-                select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts),
-                                              p=pixel_sample_weight)
-            else:
-                select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts))
+            # if self.args.use_count_map:
+            #     count_map = imageio.imread(os.path.join(self.seq_dir, 'count_maps', img_name1.replace('.jpg', '.png')))
+            #     pixel_sample_weight = 1 / np.sqrt(count_map + 1.)
+            #     pixel_sample_weight = pixel_sample_weight[mask]
+            #     pixel_sample_weight /= pixel_sample_weight.sum()
+            #     select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts),
+            #                                   p=pixel_sample_weight)
+            # else:
+            select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts))
 
         pair_weight = np.cos((frame_interval - 1.) / max_interval * np.pi / 2)
 
