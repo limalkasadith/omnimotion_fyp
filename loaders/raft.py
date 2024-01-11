@@ -72,7 +72,8 @@ class RAFTExhaustiveDataset(Dataset):
             id1 = np.random.choice(self.num_imgs, p=id1_sample_weights)
         else:
             id1 = idx % self.num_imgs
-        def select_random_id(id1):            
+        def select_random_id(id1):       
+            id2 = id1
             while id2 == id1:
                 id2 = random.randint(max(id1 - max_interval, 0), min(id1 + max_interval, self.num_imgs - 1))
             return id2
