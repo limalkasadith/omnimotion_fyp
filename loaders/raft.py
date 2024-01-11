@@ -109,8 +109,8 @@ class RAFTExhaustiveDataset(Dataset):
         coord1 = self.grid
         #coord2 = self.grid + flow
 
-        #cycle_consistency_mask = masks[..., 0] > 0
-        #occlusion_mask = masks[..., 1] > 0
+        # cycle_consistency_mask = masks[..., 0] > 0
+        # occlusion_mask = masks[..., 1] > 0
 
         # if frame_interval == 1:
         #     mask = np.ones_like(cycle_consistency_mask)
@@ -127,6 +127,16 @@ class RAFTExhaustiveDataset(Dataset):
         mask = ints_masks[..., 0] > 0
         cycle_consistency_mask = mask[..., 0] > 0
         occlusion_mask = mask[..., 1] > 0
+        if frame_interval == 1:
+            mask = np.ones_like(cycle_consistency_mask)
+        else:
+            mask = cycle_consistency_mask | occlusion_mask
+
+        if mask.sum() == 0:
+            invalid = True
+            mask = np.ones_like(cycle_consistency_mask)
+        else:
+            invalid = False
         if mask.sum() == 0:
             print('zero')
             invalid = True
