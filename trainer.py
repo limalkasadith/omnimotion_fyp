@@ -571,7 +571,7 @@ class BaseTrainer():
             self.scalars_to_log['{}/loss_distortion'.format(log_prefix)] = distortion_loss.item()
             self.scalars_to_log['{}/loss_scene_flow_smoothness'.format(log_prefix)] = scene_flow_smoothness_loss.item()
             self.scalars_to_log['{}/loss_canonical_unit_sphere'.format(log_prefix)] = canonical_unit_sphere_loss.item()
-            self.scalars_to_log['{}/loss_flow_gradient'.format(log_prefix)] = optical_flow_grad_loss.item()
+            #self.scalars_to_log['{}/loss_flow_gradient'.format(log_prefix)] = optical_flow_grad_loss.item()
             self.scalars_to_log['{}/loss_diverge'.format(log_prefix)] = div_loss.item()
 
         data = {'ids1': ids1,
@@ -1073,15 +1073,15 @@ class BaseTrainer():
                     save_path = os.path.join(flow_save_dir, '{}_{}.npy'.format(os.path.basename(self.img_files[id1]),
                                                                                os.path.basename(self.img_files[id2])))
                     np.save(save_path, pred_optical_flows[i])
-                    gt_flow = np.load(os.path.join(self.seq_dir, 'raft_exhaustive',
-                                                   '{}_{}.npy'.format(os.path.basename(self.img_files[id1]),
-                                                                      os.path.basename(self.img_files[id2]))
+                    #gt_flow = np.load(os.path.join(self.seq_dir, 'raft_exhaustive',
+                                                  # '{}_{}.npy'.format(os.path.basename(self.img_files[id1]),
+                                                            #          os.path.basename(self.img_files[id2]))
                                                    ))
-                    flow_error = np.linalg.norm(gt_flow - pred_optical_flows[i], axis=-1).mean()
-                    flow_errors.append(flow_error)
+                    #flow_error = np.linalg.norm(gt_flow - pred_optical_flows[i], axis=-1).mean()
+                    #flow_errors.append(flow_error)
 
-                flow_errors = np.array(flow_errors)
-                np.savetxt(os.path.join(self.out_dir, 'flow_error.txt'), flow_errors)
+                #flow_errors = np.array(flow_errors)
+                #np.savetxt(os.path.join(self.out_dir, 'flow_error.txt'), flow_errors)
 
     def save_model(self, filename):
         to_save = {'optimizer': self.optimizer.state_dict(),
