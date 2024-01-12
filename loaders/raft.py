@@ -179,7 +179,7 @@ class RAFTExhaustiveDataset(Dataset):
         #weights = torch.ones_like(covisible_mask) * pair_weight
 
         gt_rgb1 = torch.from_numpy(img1[mask][select_ids]).float()
-        gt_rgb2 = torch.from_numpy(img2[mask][select_ids]).float()
+        gt_rgb2 = torch.from_numpy(img1[mask][select_ids]).float()
         # gt_rgb2 = F.grid_sample(torch.from_numpy(img2).float().permute(2, 0, 1)[None], pts2_normed,
         #                         align_corners=True).squeeze().T
 
