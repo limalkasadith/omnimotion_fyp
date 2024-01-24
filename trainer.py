@@ -276,36 +276,13 @@ class BaseTrainer():
         T = torch.cat((torch.ones_like(T[..., 0:1]), T), dim=-1)  # [n_imgs, n_pts, n_samples]
 
         weights = alpha * T  # [n_imgs, n_pts, n_samples]
-        new_values = [
-            0.00663828, 0.00142751, 0.00051902, 0.00746914, 0.02009048,
-            0.03039079, 0.02962560, 0.01622825, 0.00154073, 0.00841112,
-            0.06135462, 0.17226177, 0.32933718, 0.49641567, 0.62481731,
-            0.67303795, 0.62481731, 0.49641567, 0.32933718, 0.17226177,
-            0.06135462, 0.00841112, 0.00154073, 0.01622825, 0.02962560,
-            0.03039079, 0.02009048, 0.00746914, 0.00051902, 0.00142751,
-            0.00663828, 0.01066669
-        ]
 
-        new_values_array = np.array(new_values, dtype=np.float32)
-        new_values_tensor = torch.tensor(new_values_array)
-        temp=color.shape
-        
-
-        PSF_tensor = new_values_tensor.view(1, 1, -1).expand(temp[0],temp[1], -1).to(device=color.device)
-        new_weights=    weights * PSF_tensor
-
-        # print("color",color.shape)
-        # print("weights",weights.shape)
-
-        rendered_rgbs = torch.sum(new_weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
-        # print("rendered_rgbs",rendered_rgbs.shape)
-        rendered_density = torch.sum(new_weights * density, dim=-1)
+        rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
 
         out = {'colors': color,
                'weights': weights,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
-               'rendered_densities': rendered_density,
                }
         return out
 
