@@ -118,7 +118,7 @@ class RAFTExhaustiveDataset(Dataset):
         ints_masks = imageio.imread(ints_mask_file)/255
         mask = ints_masks[..., 0] > 0
         if mask.sum() == 0:
-            print('zero')
+            # print('zero')
             invalid = True
             mask = np.ones_like(cycle_consistency_mask)
         else:
