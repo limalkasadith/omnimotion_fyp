@@ -76,7 +76,7 @@ filtered_frames = filter_images(frame_list, kernel,blue_lower,blue_upper)
 def save_frames_with_leading_zeros(frames, output_folder):
     for i, frame in enumerate(frames):
         # Define the filename with leading zeros
-        filename = f"{output_folder}/{i + 1:05d}.png"
+        filename = f"{output_folder}/{i:05d}.png"
        
         cv2.imwrite(filename, frame)
 
