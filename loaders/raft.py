@@ -14,7 +14,7 @@ from PIL import Image
 def load_image4(imfile):
     img = np.array(Image.open(imfile)).astype(np.uint8)
     img= Image.fromarray(img)
-    # img = Image.merge("RGB", (img, img, img))
+    img = Image.merge("RGB", (img, img, img))
     img= np.array(img)
     #print('testttttttt',img.shape)
     #img = img[:, :, np.newaxis]
@@ -37,7 +37,7 @@ class RAFTExhaustiveDataset(Dataset):
         self.seq_name = os.path.basename(self.seq_dir.rstrip('/'))
         self.img_dir = os.path.join(self.seq_dir, 'color')
         self.flow_dir = os.path.join(self.seq_dir, 'raft_exhaustive')
-        # img_names = sorted(os.listdir(self.img_dir))
+        #img_names = sorted(os.listdir(self.img_dir))
         img_names = sorted([i for i in os.listdir(self.img_dir) if i[0] != '.'])
         self.num_imgs = min(self.args.num_imgs, len(img_names))
         self.img_names = img_names[:self.num_imgs]
@@ -103,11 +103,6 @@ class RAFTExhaustiveDataset(Dataset):
         cycle_consistency_mask = masks[..., 0] > 0
         occlusion_mask = masks[..., 1] > 0
 
-        if frame_interval == 1:
-            mask = np.ones_like(cycle_consistency_mask)
-        else:
-            mask = cycle_consistency_mask | occlusion_mask
-
         # if frame_interval == 1:
         #     mask = np.ones_like(cycle_consistency_mask)
         # else:
@@ -122,7 +117,7 @@ class RAFTExhaustiveDataset(Dataset):
         ints_masks = imageio.imread(ints_mask_file)/255
         mask = ints_masks[..., 0] > 0
         if mask.sum() == 0:
-            # print('zero')
+            print('zero')
             invalid = True
             mask = np.ones_like(cycle_consistency_mask)
         else:
