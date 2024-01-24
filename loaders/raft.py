@@ -38,11 +38,13 @@ class RAFTExhaustiveDataset(Dataset):
         self.img_dir = os.path.join(self.seq_dir, 'color')
         self.flow_dir = os.path.join(self.seq_dir, 'raft_exhaustive')
         # img_names = sorted(os.listdir(self.img_dir))
-        img_names = sorted([i for i in os.listdir(self.img_dir) if i[0] != '.'])
+        # img_names = sorted([i for i in os.listdir(self.img_dir) if i[0] != '.'])
+        img_names = sorted(os.listdir(self.img_dir))
         self.num_imgs = min(self.args.num_imgs, len(img_names))
         self.img_names = img_names[:self.num_imgs]
 
-        h, w, _ = load_image4(os.path.join(self.img_dir, img_names[0])).shape
+        # h, w, _ = load_image4(os.path.join(self.img_dir, img_names[0])).shape
+        h, w, _ = imageio.imread(os.path.join(self.img_dir, img_names[0])).shape
         self.h, self.w = h, w
         max_interval = self.num_imgs - 1 if not max_interval else max_interval
         self.max_interval = mp.Value('i', max_interval)
