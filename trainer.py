@@ -234,7 +234,7 @@ class BaseTrainer():
         :param id2: [n_imgs,]
         :return: [n_imgs, n_pts, n_samples, 3]
         '''
-        print(x1[0])
+        
         x1_canonical = self.get_prediction_one_way(x1, id1)
         x2_pred = self.get_prediction_one_way(x1_canonical, id2, inverse=True)
         if return_canonical:
@@ -352,6 +352,9 @@ class BaseTrainer():
 
         :return: px2s_pred: [num_imgs, num_pts, 2], and optionally depth: [num_imgs, num_pts, 1]
         '''
+        print("px1s",px1s.shape)
+        print(ids1)
+        print(px1s)
         # [n_pair, n_pts, n_samples, 3]
         x1s_samples = self.sample_3d_pts_for_pixels(px1s)
         x2s_proj_samples, xs_canonical_samples = self.get_predictions(x1s_samples, ids1, ids2, return_canonical=True)
