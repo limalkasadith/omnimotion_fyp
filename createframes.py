@@ -33,7 +33,7 @@ def split_frames(video_path, output_folder):
         
 
         # Break the loop if there are no more frames
-        if not ret or frame_number==60:
+        if not ret or frame_number==10:
             break
         frame_list.append(frame)
 
