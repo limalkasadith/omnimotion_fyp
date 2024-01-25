@@ -234,6 +234,7 @@ class BaseTrainer():
         :param id2: [n_imgs,]
         :return: [n_imgs, n_pts, n_samples, 3]
         '''
+        print(x1[0])
         x1_canonical = self.get_prediction_one_way(x1, id1)
         x2_pred = self.get_prediction_one_way(x1_canonical, id2, inverse=True)
         if return_canonical:
