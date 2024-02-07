@@ -257,7 +257,7 @@ class BaseTrainer():
             x_canonical = contraction(x_canonical)
         out_canonical = self.color_mlp(x_canonical)
         color = torch.sigmoid(out_canonical[..., :3])  # [n_imgs, n_pts, n_samples, 3]
-        density = F.sigmoid(out_canonical[..., -1] - 1.)
+        density = F.softplus(out_canonical[..., -1] - 1.)
         return color, density
 
     def get_blending_weights(self, x_canonical):
@@ -267,6 +267,9 @@ class BaseTrainer():
         :return: dict containing colors, weights, alphas and rendered rgbs
         '''
         color, density = self.get_canonical_color_and_density(x_canonical)
+        psf = self.psf
+        psf_2D = psf[10, 10, 2:34]
+        psf_density = density*psf_2D
 
         alpha = util.sigma2alpha(density)  # [n_imgs, n_pts, n_samples]
 
@@ -285,7 +288,7 @@ class BaseTrainer():
         rendered_density = torch.sum(weights * density, dim=-1)  # [n_imgs, n_pts, 3]
 
         out = {'colors': color,
-               'densities': density,
+               'densities': psf_density,
                'weights': weights,
                'alphas': alpha,
                'rendered_rgbs': rendered_rgbs,
@@ -465,11 +468,16 @@ class BaseTrainer():
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
         #pred_rgb1 = out['rendered_rgbs']
-        pred_dens1 = out['rendered_density']
+        pred_dens1 = out['densities']
+        target_dens1 = gt_rgb1[:,:,0].unsqueeze(-1)
+        cost_dens1 = torch.abs(pred_dens1-target_dens1)
+        indices = torch.min(cost_dens1, dim=-1, keepdim=True)[1]
+        x2s_pred = torch.gather(x2s_proj_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)
+        pred_rgb1 = torch.gather(pred_dens1, 2, indices).squeeze(-1)
 
-        mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
-        blending_weights1 = blending_weights1 * mask.float()
-        x2s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x2s_proj_samples, dim=-2)
+        #mask = (x2s_proj_samples[..., -1] >= depth_min_th) * (x2s_proj_samples[..., -1] <= depth_max_th)
+        #blending_weights1 = blending_weights1 * mask.float()
+        #x2s_pred = torch.sum(blending_weights1.unsqueeze(-1) * x2s_proj_samples, dim=-2)
 
         # [n_imgs, n_pts, n_samples, 2]
         px2s_proj_samples, px2s_proj_depth_samples = self.project(x2s_proj_samples, return_depth=True)
@@ -478,24 +486,7 @@ class BaseTrainer():
         mask = self.get_in_range_mask(px2s_proj, max_padding)
         rgb_mask = self.get_in_range_mask(px1s)
         
-        psf = self.psf
-        psf_2D = psf[10, 10, 2:34]
-        # image color loss
-        pixel_coords, depth = torch.split(x2s_pred, dim=-1, split_size_or_sections=[2, 1])
-        d_pixel_coords = util.denormalize_coords(pixel_coords, self.h, self.w)
-        d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
-        #psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
-        coords = d_volume_coords.long()
-        pred_rgb1 = (psf_2D[coords[:,:,2].squeeze(0)])* (pred_dens1)
-        #psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
-
-        # kernel_3d = self.psf 
-        # kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
-        # psf_t_sq = psf_tensor.unsqueeze(1)
-        # convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
-        # convolved_tensor = convolved_tensor.squeeze(1)
-        # pred_img1 = convolved_tensor[:,:,:,16]
-        # gt_img1 = self.images[ids2][:,:,:,0:1]
+       
         
 
         if mask.sum() > 0:
@@ -506,18 +497,7 @@ class BaseTrainer():
             optical_flow_loss = masked_l1_loss(px2s_proj[mask], px2s[mask], weights[mask], normalize=False)
             optical_flow_grad_loss = self.gradient_loss(px2s_proj[mask], px2s[mask], weights[mask])
 
-            # flow_x_pred, flow_y_pred = torch.split(px2s_proj[mask], 1, dim=-1)
-            # flow_x_gt, flow_y_gt = torch.split(px2s[mask], 1, dim=-1)
-
-            # dx_pred = flow_x_pred[..., 1:] - flow_x_pred[..., :-1] 
-            # dy_pred = flow_y_pred[..., 1:] - flow_y_pred[..., :-1]
-            # div_pred = torch.abs(dx_pred) + torch.abs(dy_pred)
-
-            # dx_gt = flow_x_gt[..., 1:] - flow_x_gt[..., :-1]
-            # dy_gt = flow_y_gt[..., 1:] - flow_y_gt[..., :-1] 
-            # div_gt = torch.abs(dx_gt) + torch.abs(dy_gt)
-
-            # div_loss = torch.mean(torch.abs(div_pred - div_gt))
+          
         else:
             loss_rgb = loss_rgb_grad = optical_flow_loss = optical_flow_grad_loss = torch.tensor(0.)
 
