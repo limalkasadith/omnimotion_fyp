@@ -120,7 +120,8 @@ class BaseTrainer():
         self.num_imgs = min(self.args.num_imgs, len(img_files))
         self.img_files = img_files[:self.num_imgs]
 
-        images = np.array([load_image4(img_file) / 255. for img_file in self.img_files])
+        images = np.array([
+            (img_file) / 255. for img_file in self.img_files])
         self.images = torch.from_numpy(images).float()  # [n_imgs, h, w, 3]
         self.h, self.w = self.images.shape[1:3]
 
@@ -284,28 +285,40 @@ class BaseTrainer():
 
         weights = alpha * T  # [n_imgs, n_pts, n_samples]
 
-        rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
-        rendered_density = torch.sum(weights * density, dim=-1)  # [n_imgs, n_pts, 3]
+        #rendered_rgbs = torch.sum(weights.unsqueeze(-1) * color, dim=-2)  # [n_imgs, n_pts, 3]
+        #rendered_density = torch.sum(weights * density, dim=-1)  # [n_imgs, n_pts, 3]
 
         out = {'colors': color,
                'densities': psf_density,
                'weights': weights,
                'alphas': alpha,
-               'rendered_rgbs': rendered_rgbs,
-               'rendered_density' : rendered_density,
+               #'rendered_rgbs': rendered_rgbs,
+               #'rendered_density' : rendered_density,
                }
         return out
 
     def get_pred_rgbs_for_pixels(self, ids, pixels, return_weights=False):
-        xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
-        xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
-        out = self.get_blending_weights(xs_canonical_samples)
-        blending_weights = out['weights']
-        rendered_rgbs = out['rendered_rgbs']
-        if return_weights:
-            return rendered_rgbs, blending_weights  # [n_imgs, n_pts, 3], [n_imgs, n_pts, n_samples]
-        else:
-            return rendered_rgbs
+        pts = pixels.unsqueeze(0)
+        pts_normed = util.normalize_coords(pts[..., :2], self.h, self.w)
+        for id in ids:
+            gt_img = self.images[id].to(self.device)
+            gt_rgb = F.grid_sample(gt_img.permute(2, 0, 1)[None], pts_normed,
+                        align_corners=True).squeeze().T
+            xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
+            xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
+            out = self.get_blending_weights(xs_canonical_samples)
+            blending_weights = out['weights']
+            pred_dens = out['densities']
+            target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+            cost_dens = torch.abs(pred_dens-target_dens)
+            indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
+            
+            rendered_rgbs = torch.gather(pred_dens, 2, indices).repeat( 1, 1, 3)
+            
+            if return_weights:
+                return rendered_rgbs, blending_weights  # [n_imgs, n_pts, 3], [n_imgs, n_pts, n_samples]
+            else:
+                return rendered_rgbs
 
     def get_pred_depths_for_pixels(self, ids, pixels):
         '''
@@ -313,11 +326,22 @@ class BaseTrainer():
         :param pixels: [n_imgs, n_pts, 2]
         :return: pred_depths: [n_imgs, n_pts, 1]
         '''
-        xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
-        xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
-        out = self.get_blending_weights(xs_canonical_samples)
-        pred_depths = torch.sum(out['weights'].unsqueeze(-1) * pxs_depths_samples, dim=-2)
-        return pred_depths  # [n_imgs, n_pts, 1]
+        pts = pixels.unsqueeze(0)
+        pts_normed = util.normalize_coords(pts[..., :2], self.h, self.w)
+        for id in ids:
+            gt_img = self.images[id].to(self.device)
+            gt_rgb = F.grid_sample(gt_img.permute(2, 0, 1)[None], pts_normed,
+                        align_corners=True).squeeze().T
+            xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
+            xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
+            out = self.get_blending_weights(xs_canonical_samples)
+            pred_dens = out['densities']
+            target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+            cost_dens = torch.abs(pred_dens-target_dens)
+            indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
+            
+            pred_depths = torch.gather(xs_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)[...,:1]
+            return pred_depths  # [n_imgs, n_pts, 1]
 
     def get_pred_colors_and_depths_for_pixels(self, ids, pixels):
         '''
@@ -325,12 +349,25 @@ class BaseTrainer():
         :param pixels: [n_imgs, n_pts, 2]
         :return: pred_depths: [n_imgs, n_pts, 1]
         '''
-        xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
-        xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
-        out = self.get_blending_weights(xs_canonical_samples)
-        pred_depths = torch.sum(out['weights'].unsqueeze(-1) * pxs_depths_samples, dim=-2)
-        rendered_rgbs = out['rendered_rgbs']
-        return rendered_rgbs, pred_depths  # [n_imgs, n_pts, 1]
+       
+        pts = pixels.unsqueeze(0)
+        pts_normed = util.normalize_coords(pts[..., :2], self.h, self.w)
+        for id in ids:
+            gt_img = self.images[id].to(self.device)
+            gt_rgb = F.grid_sample(gt_img.permute(2, 0, 1)[None], pts_normed,
+                        align_corners=True).squeeze().T
+            xs_samples, pxs_depths_samples = self.sample_3d_pts_for_pixels(pixels, return_depth=True)
+            xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
+            out = self.get_blending_weights(xs_canonical_samples)
+            blending_weights = out['weights']
+            pred_dens = out['densities']
+            target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+            cost_dens = torch.abs(pred_dens-target_dens)
+            indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
+            
+            rendered_rgbs = torch.gather(pred_dens, 2, indices).repeat( 1, 1, 3)
+            pred_depths = torch.gather(xs_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)[...,:1]
+            return rendered_rgbs, pred_depths  # [n_imgs, n_pts, 1]
 
     def compute_depth_consistency_loss(self, proj_depths, pred_depths, visibilities, normalize=True):
         '''
@@ -362,17 +399,22 @@ class BaseTrainer():
         :return: px2s_pred: [num_imgs, num_pts, 2], and optionally depth: [num_imgs, num_pts, 1]
         '''
         # [n_pair, n_pts, n_samples, 3]
+        pts = px1s.unsqueeze(0)
+        pts_normed = util.normalize_coords(pts[..., :2], self.h, self.w)
+        gt_img = self.images[ids1].to(self.device)
+        gt_rgb = F.grid_sample(gt_img.permute(2, 0, 1)[None], pts_normed,
+                        align_corners=True).squeeze().T
         x1s_samples = self.sample_3d_pts_for_pixels(px1s)
         x2s_proj_samples, xs_canonical_samples = self.get_predictions(x1s_samples, ids1, ids2, return_canonical=True)
-        out = self.get_blending_weights(xs_canonical_samples)  # [n_imgs, n_pts, n_samples]
-        if use_max_loc:
-            blending_weights = out['weights']
-            indices = torch.max(blending_weights, dim=-1, keepdim=True)[1]
-            x2s_pred = torch.gather(x2s_proj_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)
-            return self.project(x2s_pred, return_depth=return_depth)
-        else:
-            x2s_pred = torch.sum(out['weights'].unsqueeze(-1) * x2s_proj_samples, dim=-2)
-            return self.project(x2s_pred, return_depth=return_depth)
+        out = self.get_blending_weights(xs_canonical_samples)
+        blending_weights = out['weights']
+        pred_dens = out['densities']
+        target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+        cost_dens = torch.abs(pred_dens-target_dens)
+        indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
+        x2s_pred = torch.gather(x2s_proj_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)
+        return self.project(x2s_pred, return_depth=return_depth)
+        
 
     def get_correspondences_and_occlusion_masks_for_pixels(self, ids1, px1s, ids2,
                                                            return_depth=False,
@@ -467,7 +509,6 @@ class BaseTrainer():
         out = self.get_blending_weights(x1s_canonical_samples)
         blending_weights1 = out['weights']
         alphas1 = out['alphas']
-        #pred_rgb1 = out['rendered_rgbs']
         pred_dens1 = out['densities']
         target_dens1 = gt_rgb1[:,:,0].unsqueeze(-1)
         cost_dens1 = torch.abs(pred_dens1-target_dens1)
