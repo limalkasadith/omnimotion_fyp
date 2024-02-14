@@ -128,6 +128,7 @@ class BaseTrainer():
                               if imageio.imread(mask_file).ndim == 3 else
                               imageio.imread(mask_file) / 255.
                               for mask_file in mask_files])
+            print("##################",masks.shape)
             self.masks = torch.from_numpy(masks).to(self.device) > 0.  # [n_imgs, h, w]
             self.with_mask = True
         else:
