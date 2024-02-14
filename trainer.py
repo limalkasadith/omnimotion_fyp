@@ -339,7 +339,7 @@ class BaseTrainer():
             cost_dens = torch.abs(pred_dens-target_dens)
             indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
             
-            pred_depths = torch.gather(xs_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)[...,-1].unsqueeze(0)
+            pred_depths = torch.gather(xs_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)[...,-1].unsqueeze(-1)
             return pred_depths  # [n_imgs, n_pts, 1]
 
     def get_pred_colors_and_depths_for_pixels(self, ids, pixels):
@@ -365,7 +365,7 @@ class BaseTrainer():
             indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
             
             rendered_rgbs = torch.gather(pred_dens, 2, indices).repeat( 1, 1, 3)
-            pred_depths = torch.gather(xs_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)[...,-1].unsqueeze(0)
+            pred_depths = torch.gather(xs_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)[...,-1].unsqueeze(-1)
             return rendered_rgbs, pred_depths  # [n_imgs, n_pts, 1]
 
     def compute_depth_consistency_loss(self, proj_depths, pred_depths, visibilities, normalize=True):
