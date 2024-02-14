@@ -120,8 +120,7 @@ class BaseTrainer():
         self.num_imgs = min(self.args.num_imgs, len(img_files))
         self.img_files = img_files[:self.num_imgs]
 
-        images = np.array([
-            (img_file) / 255. for img_file in self.img_files])
+        images = np.array([load_image4(img_file) / 255. for img_file in self.img_files])
         self.images = torch.from_numpy(images).float()  # [n_imgs, h, w, 3]
         self.h, self.w = self.images.shape[1:3]
 
