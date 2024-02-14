@@ -122,7 +122,7 @@ class BaseTrainer():
         self.h, self.w = self.images.shape[1:3]
 
         mask_files = [img_file.replace('color', 'mask') for img_file in self.img_files]
-        print(mask_files[0])
+        print("##################",mask_files[0])
         if os.path.exists(mask_files[0]):
             masks = np.array([imageio.imread(mask_file)[..., :3].sum(axis=-1) / 255.
                               if imageio.imread(mask_file).ndim == 3 else
