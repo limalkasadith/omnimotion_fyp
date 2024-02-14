@@ -113,7 +113,7 @@ class RAFTExhaustiveDataset(Dataset):
         #     mask = np.ones_like(cycle_consistency_mask)
         # else:
         #     invalid = False
-        ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.tif'.format(img_name1.rstrip('.png')))
+        ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.tif'.format(img_name1.rstrip('.tif')))
         
         ints_masks = imageio.imread(ints_mask_file)/255
         mask = ints_masks[..., 0] > 0
