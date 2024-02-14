@@ -121,7 +121,7 @@ class BaseTrainer():
         self.images = torch.from_numpy(images).float()  # [n_imgs, h, w, 3]
         self.h, self.w = self.images.shape[1:3]
 
-        mask_files = [img_file.replace('color', 'mask').replace('.jpg', '.png','.tif') for img_file in self.img_files]
+        mask_files = [img_file.replace('color', 'mask').replace('.jpg','.tif') for img_file in self.img_files]
         if os.path.exists(mask_files[0]):
             masks = np.array([imageio.imread(mask_file)[..., :3].sum(axis=-1) / 255.
                               if imageio.imread(mask_file).ndim == 3 else

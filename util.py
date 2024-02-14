@@ -115,7 +115,7 @@ def save_current_code(outdir):
                     ignore=shutil.ignore_patterns(
                         'data*', 'OLD*',
                         'logs*', 'out*', 'runs*', '*.png', '*.mp4', '*__pycache__*',
-                        '*.git*', '*.idea*', '*.zip', '*.jpg'))
+                        '*.git*', '*.idea*', '*.zip', '*.jpg','*.tif'))
 
 
 def drawMatches(img1, img2, kp1, kp2, num_vis=200, idx_vis=None, radius=2, mask=None):
