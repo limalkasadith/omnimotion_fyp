@@ -17,6 +17,7 @@ from networks.mfn import GaborNet
 from networks.nvp_simplified import NVPSimplified
 from kornia import morphology as morph
 
+BIT_RATE=65535
 
 torch.manual_seed(1234)
 
@@ -116,11 +117,11 @@ class BaseTrainer():
         self.num_imgs = min(self.args.num_imgs, len(img_files))
         self.img_files = img_files[:self.num_imgs]
 
-        images = np.array([load_image4(img_file) / 255. for img_file in self.img_files])
+        images = np.array([load_image4(img_file) / 65535. for img_file in self.img_files])
         self.images = torch.from_numpy(images).float()  # [n_imgs, h, w, 3]
         self.h, self.w = self.images.shape[1:3]
 
-        mask_files = [img_file.replace('color', 'mask').replace('.jpg', '.png') for img_file in self.img_files]
+        mask_files = [img_file.replace('color', 'mask').replace('.jpg', '.png','.tif') for img_file in self.img_files]
         if os.path.exists(mask_files[0]):
             masks = np.array([imageio.imread(mask_file)[..., :3].sum(axis=-1) / 255.
                               if imageio.imread(mask_file).ndim == 3 else
