@@ -309,7 +309,7 @@ class BaseTrainer():
             out = self.get_blending_weights(xs_canonical_samples)
             blending_weights = out['weights']
             pred_dens = out['densities']
-            target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+            target_dens = gt_rgb[:,0].unsqueeze(-1)
             cost_dens = torch.abs(pred_dens-target_dens)
             indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
             
@@ -336,7 +336,7 @@ class BaseTrainer():
             xs_canonical_samples = self.get_prediction_one_way(xs_samples, ids)
             out = self.get_blending_weights(xs_canonical_samples)
             pred_dens = out['densities']
-            target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+            target_dens = gt_rgb[:,0].unsqueeze(-1)
             cost_dens = torch.abs(pred_dens-target_dens)
             indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
             
@@ -361,7 +361,7 @@ class BaseTrainer():
             out = self.get_blending_weights(xs_canonical_samples)
             blending_weights = out['weights']
             pred_dens = out['densities']
-            target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+            target_dens = gt_rgb[:,0].unsqueeze(-1)
             cost_dens = torch.abs(pred_dens-target_dens)
             indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
             
@@ -409,7 +409,7 @@ class BaseTrainer():
         out = self.get_blending_weights(xs_canonical_samples)
         blending_weights = out['weights']
         pred_dens = out['densities']
-        target_dens = gt_rgb[:,:,0].unsqueeze(-1)
+        target_dens = gt_rgb[:,0].unsqueeze(-1)
         cost_dens = torch.abs(pred_dens-target_dens)
         indices = torch.min(cost_dens, dim=-1, keepdim=True)[1]
         x2s_pred = torch.gather(x2s_proj_samples, 2, indices[..., None].repeat(1, 1, 1, 3)).squeeze(-2)
