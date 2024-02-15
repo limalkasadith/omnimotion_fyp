@@ -400,7 +400,7 @@ class BaseTrainer():
         # [n_pair, n_pts, n_samples, 3]
         pts = px1s.unsqueeze(0)
         pts_normed = util.normalize_coords(pts[..., :2], self.h, self.w)
-        gt_img = self.images[ids1].to(self.device)
+        gt_img = self.images[ids1].to(self.device).squeeze()
         gt_rgb = F.grid_sample(gt_img.permute(2, 0, 1)[None], pts_normed,
                         align_corners=True).squeeze().T
         x1s_samples = self.sample_3d_pts_for_pixels(px1s)
