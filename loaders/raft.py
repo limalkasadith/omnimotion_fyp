@@ -50,6 +50,7 @@ class RAFTExhaustiveDataset(Dataset):
         self.grid = gen_grid_np(self.h, self.w)
         flow_stats = json.load(open(os.path.join(self.seq_dir, 'flow_stats.json')))
         self.sample_weights = get_sample_weights(flow_stats)
+        print("test")
 
     def __len__(self):
         return self.num_imgs * 100000
