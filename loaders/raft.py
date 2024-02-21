@@ -69,8 +69,10 @@ class RAFTExhaustiveDataset(Dataset):
             flow_error = np.loadtxt(flow_error_file)
             id1_sample_weights = flow_error / np.sum(flow_error)
             id1 = np.random.choice(self.num_imgs, p=id1_sample_weights)
+            print("if: ",id1)
         else:
-            id1 = idx % 8
+            id1 = idx // 8
+            print("else: ",id1)
 
         img_name1 = self.img_names[id1]
         max_interval = min(self.max_interval.value, self.num_imgs - 1)
