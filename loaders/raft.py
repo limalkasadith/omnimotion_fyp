@@ -16,8 +16,7 @@ def load_image4(imfile):
     img= Image.fromarray(img)
     img = Image.merge("RGB", (img, img, img))
     img= np.array(img)
-    #print('testttttttt',img.shape)
-    #img = img[:, :, np.newaxis]
+   
     
     return img
 def get_sample_weights(flow_stats):
@@ -50,7 +49,7 @@ class RAFTExhaustiveDataset(Dataset):
         self.grid = gen_grid_np(self.h, self.w)
         flow_stats = json.load(open(os.path.join(self.seq_dir, 'flow_stats.json')))
         self.sample_weights = get_sample_weights(flow_stats)
-        print("test")
+     
 
     def __len__(self):
         return self.num_imgs * 100000
@@ -63,18 +62,10 @@ class RAFTExhaustiveDataset(Dataset):
         self.max_interval.value = min(curr_max_interval + increment, self.num_imgs - 1)
 
     def __getitem__(self, idx):
-        cached_flow_pred_dir = os.path.join('out', '{}_{}'.format(self.args.expname, self.seq_name), 'flow')
-        cached_flow_pred_files = sorted(glob.glob(os.path.join(cached_flow_pred_dir, '*')))
-        flow_error_file = os.path.join(os.path.dirname(cached_flow_pred_dir), 'flow_error.txt')
-        if os.path.exists(flow_error_file):
-            flow_error = np.loadtxt(flow_error_file)
-            id1_sample_weights = flow_error / np.sum(flow_error)
-            id1 = np.random.choice(self.num_imgs, p=id1_sample_weights)
-            print("if: ",id1)
-        else:
-            id1 = idx // 8
-            print("else: ",id1)
-
+        
+        num_batches = 100
+        id1 = (idx // (8*num_batches))%self.num_imgs
+        
         img_name1 = self.img_names[id1]
         max_interval = min(self.max_interval.value, self.num_imgs - 1)
         img2_candidates = sorted(list(self.sample_weights[img_name1].keys()))
@@ -106,16 +97,6 @@ class RAFTExhaustiveDataset(Dataset):
         cycle_consistency_mask = masks[..., 0] > 0
         occlusion_mask = masks[..., 1] > 0
 
-        # if frame_interval == 1:
-        #     mask = np.ones_like(cycle_consistency_mask)
-        # else:
-        #     mask = cycle_consistency_mask | occlusion_mask
-
-        # if mask.sum() == 0:
-        #     invalid = True
-        #     mask = np.ones_like(cycle_consistency_mask)
-        # else:
-        #     invalid = False
         ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.png'.format(img_name1.rstrip('.jpg')))
         ints_masks = imageio.imread(ints_mask_file)/255
         mask = ints_masks[..., 0] > 0
@@ -125,32 +106,14 @@ class RAFTExhaustiveDataset(Dataset):
             mask = np.ones_like(cycle_consistency_mask)
         else:
             invalid = False
+        
+        start_idx = ((idx%(8*num_batches))) * self.num_pts
+        end_idx = ((idx%(8*num_batches)) + 1) * self.num_pts
 
-        if len(cached_flow_pred_files) > 0 and self.args.use_error_map:
-            cached_flow_pred_file = cached_flow_pred_files[id1]
-            assert img_name1 + '_' in cached_flow_pred_file
-            sup_flow_file = os.path.join(self.flow_dir, os.path.basename(cached_flow_pred_file))
-            pred_flow = np.load(cached_flow_pred_file)
-            sup_flow = np.load(sup_flow_file)
-            error_map = np.linalg.norm(pred_flow - sup_flow, axis=-1)
-            error_map = cv2.GaussianBlur(error_map, (5, 5), 0)
-            error_selected = error_map[mask]
-            prob = error_selected / np.sum(error_selected)
-            select_ids_error = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts), p=prob)
-            select_ids_random = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts))
-            select_ids = np.random.choice(np.concatenate([select_ids_error, select_ids_random]), self.num_pts,
-                                          replace=False)
+        if start_idx<mask.sum():
+            select_ids = np.random.choice(np.arange(start_idx,min(end_idx,mask.sum())), size=self.num_pts, replace=(end_idx!= end_idx%mask.sum()))
         else:
-            if self.args.use_count_map:
-                count_map = imageio.imread(os.path.join(self.seq_dir, 'count_maps', img_name1.replace('.jpg', '.png')))
-                pixel_sample_weight = 1 / np.sqrt(count_map + 1.)
-                pixel_sample_weight = pixel_sample_weight[mask]
-                pixel_sample_weight /= pixel_sample_weight.sum()
-                select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts),
-                                              p=pixel_sample_weight)
-            else:
-                select_ids = np.random.choice(mask.sum(), self.num_pts, replace=(mask.sum() < self.num_pts))
-
+            select_ids = np.random.choice(np.arange(0,mask.sum()), size=self.num_pts)
         pair_weight = np.cos((frame_interval - 1.) / max_interval * np.pi / 2)
 
         pts1 = torch.from_numpy(coord1[mask][select_ids]).float()
@@ -167,9 +130,6 @@ class RAFTExhaustiveDataset(Dataset):
         if invalid:
             weights = torch.zeros_like(weights)
 
-        if np.random.choice([0, 1]):
-            id1, id2, pts1, pts2, gt_rgb1, gt_rgb2 = id2, id1, pts2, pts1, gt_rgb2, gt_rgb1
-            weights[covisible_mask == 0.] = 0
 
         data = {'ids1': id1,
                 'ids2': id2,
