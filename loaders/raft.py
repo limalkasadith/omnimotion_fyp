@@ -14,7 +14,7 @@ from PIL import Image
 def load_image4(imfile):
     img = np.array(Image.open(imfile)).astype(np.uint8)
     img= Image.fromarray(img)
-    #img = Image.merge("RGB", (img, img, img))
+    img = Image.merge("RGB", (img, img, img))
     img= np.array(img)
    
     
