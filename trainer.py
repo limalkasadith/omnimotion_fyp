@@ -16,6 +16,7 @@ from criterion import masked_mse_loss, masked_l1_loss, compute_depth_range_loss,
 from networks.mfn import GaborNet
 from networks.nvp_simplified import NVPSimplified
 from kornia import morphology as morph
+from scipy.signal import convolve
 
 
 torch.manual_seed(1234)
@@ -434,6 +435,7 @@ class BaseTrainer():
 
     def compute_all_losses(self,
                            batch,
+                           convolve,
                            w_rgb=1,
                            w_depth_range=10,
                            w_distortion=1.,
@@ -452,8 +454,12 @@ class BaseTrainer():
 
         ids1 = batch['ids1'].numpy()
         ids2 = batch['ids2'].numpy()
-        px1s = batch['pts1'].to(self.device)
-        px2s = batch['pts2'].to(self.device)
+        if convolve == True:
+            px1s = torch.randint(0, 700, (1, 400000, 2), dtype=torch.float32).to(self.device)
+            px2s = torch.randint(0, 700, (1, 400000, 2), dtype=torch.float32).to(self.device)
+        else:
+            px1s = batch['pts1'].to(self.device)
+            px2s = batch['pts2'].to(self.device)
         gt_rgb1 = batch['gt_rgb1'].to(self.device)
         weights = batch['weights'].to(self.device)
         num_pts = px1s.shape[1]
@@ -500,6 +506,13 @@ class BaseTrainer():
 
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
+            if convolve == True:
+                convolved_3d = convolve(pred_dens1.cpu().detach().numpy(), psf.to(self.device))
+                prediced_img = convolved_3d[:,:,:,16]
+                loss_psf = F.mse_loss(prediced_img, gt_rgb1[:,:,0])
+            else:
+                loss_psf =0
+                
             loss_rgb = F.mse_loss(pred_rgb1, gt_rgb1[:,:,0])
             #loss_rgb_grad = self.gradient_loss(pred_img1, gt_img1)
 
@@ -541,7 +554,8 @@ class BaseTrainer():
                w_distortion * distortion_loss + \
                w_scene_flow_smooth * scene_flow_smoothness_loss + \
                w_canonical_unit_sphere * canonical_unit_sphere_loss + \
-               w_flow_grad * optical_flow_grad_loss 
+               w_flow_grad * optical_flow_grad_loss +\
+               loss_psf
                #w_diverge * div_loss
                
 
@@ -554,8 +568,9 @@ class BaseTrainer():
             self.scalars_to_log['{}/loss_scene_flow_smoothness'.format(log_prefix)] = scene_flow_smoothness_loss.item()
             self.scalars_to_log['{}/loss_canonical_unit_sphere'.format(log_prefix)] = canonical_unit_sphere_loss.item()
             self.scalars_to_log['{}/loss_flow_gradient'.format(log_prefix)] = optical_flow_grad_loss.item()
+            self.scalars_to_log['{}/loss_psf'.format(log_prefix)] = loss_psf.item()
             #self.scalars_to_log['{}/loss_diverge'.format(log_prefix)] = div_loss.item()
-
+        convolve = False
         data = {'ids1': ids1,
                 'ids2': ids2,
                 'x1s': x1s_samples,
@@ -581,7 +596,7 @@ class BaseTrainer():
         weight = np.clip(weight, a_min=min_weight, a_max=max_weight)
         return weight
 
-    def train_one_step(self, step, batch):
+    def train_one_step(self, step, batch, convolve):
         self.step = step
         start = time.time()
         self.scalars_to_log = {}
@@ -593,6 +608,7 @@ class BaseTrainer():
         w_scene_flow_smooth = 20.
 
         loss, flow_data = self.compute_all_losses(batch,
+                                                  convolve,
                                                   w_rgb=w_rgb,
                                                   w_scene_flow_smooth=w_scene_flow_smooth,
                                                   w_distortion=w_distortion,
