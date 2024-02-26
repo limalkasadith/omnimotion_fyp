@@ -77,9 +77,11 @@ def train(args):
     start_step = trainer.step + 1
     step = start_step
     epoch = 0
+    convolve= False 
     while step < args.num_iters + start_step + 1:
+        
         for batch in data_loader:
-            trainer.train_one_step(step, batch)
+            trainer.train_one_step(step, batch,convolve)
             trainer.log(writer, step)
 
             step += 1
@@ -90,6 +92,9 @@ def train(args):
                 break
 
         epoch += 1
+        if epoch %100 ==0;
+            convolve = True
+        
         if args.distributed:
             data_sampler.set_epoch(epoch)
 
