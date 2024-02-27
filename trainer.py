@@ -455,8 +455,12 @@ class BaseTrainer():
         ids1 = batch['ids1'].numpy()
         ids2 = batch['ids2'].numpy()
         if convolve == True:
-            px1s = torch.randint(0, 700, (1, 400000, 2), dtype=torch.float32).to(self.device)
-            px2s = torch.randint(0, 700, (1, 400000, 2), dtype=torch.float32).to(self.device)
+            masked_image = cv2.bitwise_and(self.images[ids1], self.images[ids1], mask=self.masks[ids1])
+            nonzero_coords = np.transpose(np.nonzero(mask))
+            px1s= nonzero_coords
+            px2s= nonzero_coords
+            #px1s = torch.randint(0, 700, (1, 400000, 2), dtype=torch.float32).to(self.device)
+            #px2s = torch.randint(0, 700, (1, 400000, 2), dtype=torch.float32).to(self.device)
         else:
             px1s = batch['pts1'].to(self.device)
             px2s = batch['pts2'].to(self.device)
@@ -490,14 +494,14 @@ class BaseTrainer():
         pixel_coords, depth = torch.split(x2s_pred, dim=-1, split_size_or_sections=[2, 1])
         d_pixel_coords = util.denormalize_coords(pixel_coords, self.h, self.w)
         d_volume_coords = torch.cat([d_pixel_coords, depth*15.5], dim=2)
-        #psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
+        psf_tensor = torch.zeros((8,self.h, self.w, 32), device=self.device)
         coords = d_volume_coords.long()
         pred_rgb1 = (psf_2D[coords[:,:,2].squeeze(0)])* (pred_dens1)
-        #psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
+        psf_tensor[coords[:, :, 0], coords[:, :, 1], coords[:, :, 2]] += pred_dens1
 
-        # kernel_3d = self.psf 
-        # kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
-        # psf_t_sq = psf_tensor.unsqueeze(1)
+        kernel_3d = self.psf 
+        kernel_3d = kernel_3d.unsqueeze(0).unsqueeze(0)
+        psf_t_sq = psf_tensor.unsqueeze(1)
         # convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
         # convolved_tensor = convolved_tensor.squeeze(1)
         # pred_img1 = convolved_tensor[:,:,:,16]
@@ -507,7 +511,7 @@ class BaseTrainer():
         if mask.sum() > 0:
             #loss_rgb = F.mse_loss(pred_rgb1[rgb_mask], gt_rgb1[rgb_mask])
             if convolve == True:
-                convolved_3d = convolve(pred_dens1.cpu().detach().numpy(), psf.to(self.device))
+                convolved_3d = convolved_tensor = F.conv3d(psf_t_sq, kernel_3d, padding='same')
                 prediced_img = convolved_3d[:,:,:,16]
                 loss_psf = F.mse_loss(prediced_img, gt_rgb1[:,:,0])
             else:
