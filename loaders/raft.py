@@ -46,6 +46,8 @@ class RAFTExhaustiveDataset(Dataset):
         max_interval = self.num_imgs - 1 if not max_interval else max_interval
         self.max_interval = mp.Value('i', max_interval)
         self.num_pts = self.args.num_pts
+        #-----------------------------------------------------------------------------------
+        self.num_pairs = self.args.num_pairs
         self.grid = gen_grid_np(self.h, self.w)
         flow_stats = json.load(open(os.path.join(self.seq_dir, 'flow_stats.json')))
         self.sample_weights = get_sample_weights(flow_stats)
@@ -63,8 +65,11 @@ class RAFTExhaustiveDataset(Dataset):
 
     def __getitem__(self, idx):
         
-        num_batches = 100
-        id1 = (idx // (8*num_batches))%self.num_imgs
+        block_len = (self.num_pts**0.5) #num_pts = 1024   #16
+        h_blocks = self.h//block_len #25   #50
+        w_blocks = self.w//block_len #24  #49
+        num_blocks = (h_blocks)*(w_blocks) #2450
+        id1 = int((idx // (num_blocks))%self.num_imgs) #0
         
         img_name1 = self.img_names[id1]
         max_interval = min(self.max_interval.value, self.num_imgs - 1)
@@ -97,9 +102,13 @@ class RAFTExhaustiveDataset(Dataset):
         cycle_consistency_mask = masks[..., 0] > 0
         occlusion_mask = masks[..., 1] > 0
 
-        ints_mask_file = os.path.join(self.seq_dir.rstrip('/'),'mask','{}.png'.format(img_name1.rstrip('.jpg')))
-        ints_masks = imageio.imread(ints_mask_file)/255
-        mask = ints_masks[..., 0] > 0
+#-------------------------------------------------------------------------------------------------       
+        block_num = idx % num_blocks  #80
+        x_range = ((block_num%w_blocks)*block_len , ((block_num%w_blocks)+1)*block_len)
+        y_range = ((block_num//w_blocks)*block_len , ((block_num//w_blocks)+1)*block_len)
+        x, y = np.meshgrid(np.arange(self.w), np.arange(self.h))
+        mask = np.logical_and.reduce((x >= x_range[0], x < x_range[1], y >= y_range[0], y < y_range[1]))
+        
         if mask.sum() == 0:
             print('zero')
             invalid = True
@@ -107,23 +116,19 @@ class RAFTExhaustiveDataset(Dataset):
         else:
             invalid = False
         
-        start_idx = ((idx%(8*num_batches))) * self.num_pts
-        end_idx = ((idx%(8*num_batches)) + 1) * self.num_pts
+        
 
-        if start_idx<mask.sum():
-            select_ids = np.random.choice(np.arange(start_idx,min(end_idx,mask.sum())), size=self.num_pts, replace=(end_idx!= end_idx%mask.sum()))
-        else:
-            select_ids = np.random.choice(np.arange(0,mask.sum()), size=self.num_pts)
+        
         pair_weight = np.cos((frame_interval - 1.) / max_interval * np.pi / 2)
 
-        pts1 = torch.from_numpy(coord1[mask][select_ids]).float()
-        pts2 = torch.from_numpy(coord2[mask][select_ids]).float()
+        pts1 = torch.from_numpy(coord1[mask]).float()
+        pts2 = torch.from_numpy(coord2[mask]).float()
         pts2_normed = normalize_coords(pts2, self.h, self.w)[None, None]
 
-        covisible_mask = torch.from_numpy(cycle_consistency_mask[mask][select_ids]).float()[..., None]
+        covisible_mask = torch.from_numpy(cycle_consistency_mask[mask]).float()[..., None]
         weights = torch.ones_like(covisible_mask) * pair_weight
 
-        gt_rgb1 = torch.from_numpy(img1[mask][select_ids]).float()
+        gt_rgb1 = torch.from_numpy(img1[mask]).float()
         gt_rgb2 = F.grid_sample(torch.from_numpy(img2).float().permute(2, 0, 1)[None], pts2_normed,
                                 align_corners=True).squeeze().T
 
